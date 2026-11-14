@@ -33,7 +33,7 @@ async function addFiles(list){
   let url=URL.createObjectURL(file);
   try{
    const image=await createImage(url);
-   photos.push({file,url,image,fields:{node:'',date:'',coords:''},watermarkMode:'replace',region:null,crop:null,pendingCrop:null,fontSize:100,repairMethod:'blend',ocrStatus:'not',adjust:defaultAdjust(),logo:defaultLogo(),customLogo:null,aiImage:null,aiUrl:null,aiCleanRegion:false,aiHistory:[],aiInstruction:'',aiEdits:[]});
+   photos.push({file,url,image,fields:{node:'',date:'',coords:''},watermarkMode:'replace',region:null,crop:null,pendingCrop:null,fontSize:100,repairMethod:'blend',ocrStatus:'not',adjust:defaultAdjust(),logo:defaultLogo(),customLogo:null,aiImage:null,aiUrl:null,aiCleanRegion:false,aiHistory:[],aiInstruction:'',aiMode:'label',aiEdits:[]});
    count++;
   }catch(error){URL.revokeObjectURL(url);}
  }
@@ -100,6 +100,7 @@ function showPhotoControls(){
  $('fieldDate').value=p.fields.date;
  $('fieldCoords').value=p.fields.coords;
  $('aiInstruction').value=p.aiInstruction||'';
+ $('aiOperation').value=p.aiMode||'label';
  $('aiUndo').disabled=!(p.aiHistory&&p.aiHistory.length);
  $('aiRegionNotice').textContent=p.region?'Zona de edición seleccionada para esta foto.':'Usa el OCR o marca el área del rótulo. Para edición de toda la imagen elige «Fotografía completa».';
  $('watermarkMode').value=p.watermarkMode;
@@ -628,7 +629,7 @@ async function generateWithAI(){
  if(busy){toast('Ya se está procesando una operación.');return;}
  const password=$('aiPassword').value;
  const instruction=$('aiInstruction').value.trim();
- const operation=$('aiOperation').value;
+ const operation=p.aiMode||$('aiOperation').value;
  if(!password){toast('Introduce la contraseña de IA configurada en Vercel.');return;}
  if(!instruction){toast('Escribe qué deseas modificar en esta fotografía.');return;}
  p.aiInstruction=instruction;
@@ -685,6 +686,7 @@ all('.ai-example').forEach(el=>el.addEventListener('click',()=>{
 }));
 $('aiOperation').addEventListener('change',()=>{
  const action=$('aiOperation').value;
+ if(active())active().aiMode=action;
  $('aiRegionNotice').textContent=action==='full'?
   'La IA editará toda la fotografía visible. Revisa el resultado porque puede modificar otros detalles.':
   active()?.region?'Región de edición marcada para esta foto.':
