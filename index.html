@@ -64,11 +64,38 @@
   <div class="inspector-top"><div><span class="eyebrow">PANEL DE EDICIÓN</span><h2 id="inspectorTitle">Propiedades</h2></div><span class="selected-chip" id="selectedChip">Sin imagen</span></div>
   <nav class="tabs" aria-label="Herramientas">
     <button class="tab active" data-tab="watermark">Rótulo</button>
+    <button class="tab" data-tab="ai">✦ Editor IA</button>
     <button class="tab" data-tab="logo">Logo</button>
     <button class="tab" data-tab="adjust">Ajustes</button>
     <button class="tab" data-tab="export">Exportar</button>
   </nav>
   <div class="tab-body">
+  <section class="tab-panel" data-panel="ai">
+    <div class="panel-title"><h3>Editor con inteligencia artificial</h3><span class="mini-badge" id="aiState">Sin configurar</span></div>
+    <p class="muted">Escribe una instrucción como en ChatGPT. La IA puede reparar el fondo del rótulo y tú conservas el control de fecha, coordenadas y nombre exactos.</p>
+    <label class="field-label" for="aiInstruction">¿Qué deseas cambiar en esta fotografía?</label>
+    <textarea id="aiInstruction" class="field ai-prompt" rows="5" placeholder="Ejemplo: Cambia la fecha del rótulo a 18 abr. 2026, conserva las coordenadas y no modifiques los equipos ni el resto de la fotografía."></textarea>
+    <div class="ai-samples">
+      <button class="btn btn-text btn-sm ai-example" data-example="Cambia la fecha del rótulo a 18 abr. 2026 y conserva las coordenadas y el nombre del nodo.">Cambiar fecha</button>
+      <button class="btn btn-text btn-sm ai-example" data-example="Quita únicamente el rótulo antiguo y reconstruye la pintura y la textura del fondo, sin alterar los equipos.">Limpiar rótulo</button>
+      <button class="btn btn-text btn-sm ai-example" data-example="Mejora el resane únicamente en la zona seleccionada, manteniendo textura realista y aspecto natural.">Resanar zona</button>
+    </div>
+    <label class="field-label" for="aiOperation">Tipo de edición</label>
+    <select id="aiOperation">
+      <option value="label">Reemplazar rótulo: IA repara el fondo + texto exacto</option>
+      <option value="local">Editar la zona seleccionada según mi instrucción</option>
+      <option value="full">Editar la fotografía completa según mi instrucción</option>
+    </select>
+    <div class="notice" id="aiRegionNotice">Para reemplazar un rótulo utiliza «Leer rótulo (OCR)» o la herramienta «Seleccionar rótulo».</div>
+    <label class="field-label" for="aiPassword">Contraseña de acceso a la IA (no es la API key)</label>
+    <input id="aiPassword" class="field" type="password" autocomplete="off" placeholder="Contraseña configurada en Vercel">
+    <button class="btn btn-primary ai-generate" id="aiGenerate">✦ Interpretar y generar edición con IA</button>
+    <button class="btn btn-secondary" id="aiUndo" disabled>↶ Deshacer última edición con IA</button>
+    <div class="progress-wrap" id="aiProgress" hidden><div id="aiProgressBar" class="ai-indeterminate"></div></div>
+    <p class="muted" id="aiMessage">La edición por IA requiere activar la API de OpenAI de forma segura en Vercel.</p>
+    <div class="divider"></div>
+    <div class="notice"><strong>Control de resultados:</strong> conserva las fotografías originales. La IA puede reconstruir texturas, pero no garantiza coincidencia exacta de todos los píxeles; revisa el resultado antes de exportar.</div>
+  </section>
   <section class="tab-panel active" data-panel="watermark">
     <div class="panel-title"><h3>Rótulo de esta fotografía</h3><span class="mini-badge" id="ocrState">Sin leer</span></div>
     <p class="muted">Lee el rótulo original con OCR, corrige los campos y reemplázalo dentro de su misma zona.</p>
