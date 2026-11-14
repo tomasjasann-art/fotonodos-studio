@@ -1,130 +1,139 @@
-<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FotoNodos Studio</title><style>
-*{box-sizing:border-box}body{margin:0;font:14px Arial;background:#0b1625;color:#e9f2ff}header{background:#15283e;padding:18px 24px;border-bottom:1px solid #37516e}h1{margin:0;font-size:25px}main{display:grid;grid-template-columns:350px minmax(0,1fr);height:calc(100vh - 79px)}aside{overflow:auto;padding:12px;background:#102035}section{border:1px solid #364c69;background:#192d46;border-radius:11px;padding:15px;margin-bottom:12px}h3{margin:0 0 12px}label{display:block;margin:12px 0 5px}input:not([type=checkbox]):not([type=range]),select{width:100%;padding:9px;background:#0e1d30;color:white;border:1px solid #526882;border-radius:6px}input[type=range]{width:100%}button{background:#2879ed;border:0;color:white;padding:10px 12px;margin:3px 3px 3px 0;border-radius:7px;cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{opacity:.5}.view{padding:15px;min-width:0;display:flex;flex-direction:column;gap:12px}#stage{flex:1;min-height:300px;display:flex;align-items:center;justify-content:center;background:#071120;border:1px dashed #436182;border-radius:12px;overflow:auto}canvas{display:none;max-width:100%;max-height:70vh;touch-action:none;cursor:crosshair}#thumbs{display:flex;gap:6px;overflow:auto;min-height:90px}#thumbs button{background:#263e58;width:115px;flex:none;font-size:11px;word-break:break-all}#thumbs img{display:block;width:100%;height:65px;object-fit:cover}#thumbs .active{outline:2px solid #4ec6ff}.hint{color:#a6bcd3;font-size:12px}#status{color:#77d7d2} @media(max-width:750px){main{display:block;height:auto}.view{min-height:650px}}
-</style><header><h1>📷 FotoNodos Studio</h1><span class="hint">Editor independiente · Las fotos se procesan en tu navegador</span></header><main><aside>
-<section><h3>1. Cargar fotografías</h3><input id="files" type="file" accept="image/*" multiple><label>Logo de la empresa (puedes cargarlo antes o después de recortar)</label><input id="logo" type="file" accept="image/*"><button id="applyLogo" type="button">Aplicar logo a la foto</button><label><input id="showlogo" type="checkbox" checked> Mostrar logo arriba derecha</label><label>Ancho del logo <output id="logosizeval">14%</output></label><input id="logosize" type="range" min="5" max="35" value="14"><button id="clear">Limpiar lista</button></section>
-<section><h3>2. Editar foto</h3><label>Herramienta</label><select id="mode"><option value="erase">Seleccionar rótulo anterior (para reemplazar)</option><option value="crop">Seleccionar recorte</option><option value="none">Visualizar</option></select><button id="cropbutton">Aplicar recorte</button><button id="undocrop">Quitar recorte</button><button id="undoerase">Quitar reemplazo</button><p class="hint">Arrastra sobre la foto para seleccionar. Para ocultar el rótulo antiguo se copiará una zona cercana del fondo, que puede necesitar retoques.</p><label>Envejecimiento visual <output id="ageval">0%</output></label><input id="age" type="range" min="0" max="100" value="0"><label>Saturación <output id="satval">100%</output></label><input id="sat" type="range" min="0" max="150" value="100"><label>Iluminación <output id="brightval">100%</output></label><input id="bright" type="range" min="40" max="140" value="100"><label>Contraste <output id="contrastval">100%</output></label><input id="contrast" type="range" min="40" max="150" value="100"><p class="hint">Estos efectos son visuales, no prueban la antigüedad real de la fotografía.</p></section>
-<section><h3>3. Marca de agua</h3><label>¿Qué quieres hacer con el rótulo?</label><select id="watermarkType"><option value="replace">Reemplazar rótulo existente (sin superponer)</option><option value="add">Agregar rótulo a una foto sin marca de agua</option><option value="keep">Conservar rótulo original sin modificarlo</option></select><p class="hint" id="editHelp">Para reemplazar: selecciona «Seleccionar rótulo anterior» en la sección 2 y arrastra un rectángulo que cubra exactamente las tres líneas de texto. Luego escribe los datos nuevos.</p><button id="ocr">Leer rótulo con OCR y preparar reemplazo</button><button id="removeText">Borrar rótulo detectado</button><label>Nombre del nodo</label><input id="node" placeholder="Ej. A4035_SM_ALTO RIOJA"><label>Fecha y hora</label><input id="date" placeholder="Introduce la fecha y hora"><label>Coordenadas</label><input id="coords" placeholder="Introduce las coordenadas"><label><input id="showtext" type="checkbox" checked> Mostrar rótulo editado</label><label>Tamaño del texto <output id="sizeval">3.2%</output></label><input id="size" type="range" min="1.5" max="5" step=".1" value="3.2"><label><input id="batch" type="checkbox"> Usar los mismos datos en todas las fotos</label></section>
-<section><h3>4. Exportar</h3><label>Nombre del archivo</label><select id="naming"><option value="node">Nombre del nodo</option><option value="number">Nodo + número correlativo</option><option value="original">Nombre original</option></select><label>Formato</label><select id="format"><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select><button id="save">Descargar foto</button><button id="zip">Descargar todas en ZIP</button><p id="status">Carga una fotografía para comenzar.</p></section>
-</aside><div class="view"><div><strong id="name">Ninguna fotografía</strong> <button id="prev">◀</button><button id="next">▶</button></div><div id="stage"><span id="empty" class="hint">Arrastra aquí tus fotografías o selecciónalas desde el panel.</span><canvas id="canvas"></canvas></div><div id="thumbs"></div><div class="hint">La vista previa está optimizada. La exportación usa la resolución original. Comprueba fechas y coordenadas antes de usar las fotografías como evidencia.</div></div></main>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script><script>
-const $=id=>document.getElementById(id),canvas=$('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});let photos=[],current=0,logo=null,point=null,selection=null,frame=0,busy=false;
-const active=()=>photos[current],clamp=(n,a,b)=>Math.min(b,Math.max(a,n)),getFields=()=>({node:$('node').value,date:$('date').value,coords:$('coords').value}),setFields=d=>{for(const k of ['node','date','coords'])$(k).value=d[k]||''},saveFields=()=>{if(active())active().fields=getFields()};
-const image=file=>new Promise((resolve,reject)=>{let url=URL.createObjectURL(file),img=new Image;img.onload=()=>{resolve(img)};img.onerror=reject;img.src=url});
-async function add(files){for(let file of [...files]){if(!file.type.startsWith('image/'))continue;try{let img=await image(file);photos.push({file,img,fields:{node:'',date:'',coords:''},crop:null,erase:null})}catch(e){$('status').textContent='Error al abrir '+file.name}}if(photos.length){current=photos.length-1;setFields(active().fields)}show()}
-$('files').onchange=async e=>{await add(e.target.files);e.target.value=''};$('logo').onchange=async e=>{if(e.target.files[0]){logo=await image(e.target.files[0]);redraw()}};$('stage').ondragover=e=>e.preventDefault();$('stage').ondrop=async e=>{e.preventDefault();await add(e.dataTransfer.files)};
-function show(){let p=active();$('name').textContent=p?p.file.name:'Ninguna fotografía';$('empty').style.display=p?'none':'block';canvas.style.display=p?'block':'none';let t=$('thumbs');t.replaceChildren();photos.forEach((p,i)=>{let b=document.createElement('button'),im=document.createElement('img');im.src=p.img.src;b.append(im,document.createTextNode(p.file.name));if(i===current)b.className='active';b.onclick=()=>{saveFields();current=i;setFields(p.fields);show()};t.append(b)});redraw()}
-$('clear').onclick=()=>{photos=[];current=0;selection=null;show()};$('prev').onclick=()=>move(-1);$('next').onclick=()=>move(1);
-function move(n){if(!photos.length)return;saveFields();current=(current+n+photos.length)%photos.length;setFields(active().fields);selection=null;show()}
-function bounds(p){let w=p.img.naturalWidth,h=p.img.naturalHeight,c=p.crop;return c?{x:c.x*w,y:c.y*h,w:c.w*w,h:c.h*h}:{x:0,y:0,w,h}}
-function render(p,c,max=Infinity){let region=bounds(p),s=Math.min(1,max/Math.max(region.w,region.h)),w=Math.max(1,Math.round(region.w*s)),h=Math.max(1,Math.round(region.h*s));c.width=w;c.height=h;let x=c.getContext('2d',{willReadFrequently:true});x.drawImage(p.img,region.x,region.y,region.w,region.h,0,0,w,h);
-if(p.erase && $('watermarkType').value==='replace'){let e=p.erase,X=Math.round((e.x*p.img.naturalWidth-region.x)*s),Y=Math.round((e.y*p.img.naturalHeight-region.y)*s),W=Math.round(e.w*p.img.naturalWidth*s),H=Math.round(e.h*p.img.naturalHeight*s);X=clamp(X,0,w-1);Y=clamp(Y,0,h-1);W=clamp(W,1,w-X);H=clamp(H,1,h-Y);let from=Y-H-2;if(from<0)from=Y+H+2;if(from>=0&&from+H<=h){let patch=x.getImageData(X,from,W,H);x.putImageData(patch,X,Y)}else{let pixel=x.getImageData(X,clamp(Y-2,0,h-1),1,1).data;x.fillStyle='rgb('+pixel[0]+','+pixel[1]+','+pixel[2]+')';x.fillRect(X,Y,W,H)}}
-
-let a=+$('age').value/100;
-let sat=+$('sat').value/100,brightness=+$('bright').value/100,contrast=+$('contrast').value/100;
-if(a>0 || sat!==1 || brightness!==1 || contrast!==1){
- let image=x.getImageData(0,0,w,h),d=image.data;
- for(let i=0;i<d.length;i+=4){
-  let R=d[i],G=d[i+1],B=d[i+2],gray=.299*R+.587*G+.114*B;
-  let ss=sat*(1-.82*a),cc=contrast*(1-.32*a),bb=brightness*(1-.18*a);
-  let r=(gray+(R-gray)*ss-128)*cc+128,gg=(gray+(G-gray)*ss-128)*cc+128,b=(gray+(B-gray)*ss-128)*cc+128;
-  let grain=a*16*Math.sin((i/4%8191)*12.9898),tone=a*16;
-  d[i]=clamp(r*bb+tone+grain,0,255);
-  d[i+1]=clamp(gg*bb+tone*.35+grain*.7,0,255);
-  d[i+2]=clamp(b*bb-tone*.8+grain*.5,0,255);
- }
- x.putImageData(image,0,0);
- if(a>.01){
-  x.save();
-  let rad=Math.max(w,h),v=x.createRadialGradient(w*.5,h*.5,rad*.1,w*.5,h*.5,rad*.78);
-  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(55,35,18,'+(.3*a)+')');
-  x.fillStyle=v;x.fillRect(0,0,w,h);x.restore();
- }
-}
-let fields=$('batch').checked?getFields():p.fields;
-let action=$('watermarkType').value;
-if($('showtext').checked && action!=='keep'){
-  let text=[fields.date,fields.coords,fields.node].filter(Boolean);
-  let rect=null;
-  if(action==='replace' && p.erase){
-    let e=p.erase;
-    rect={x:(e.x*p.img.naturalWidth-region.x)*s,
-          y:(e.y*p.img.naturalHeight-region.y)*s,
-          w:e.w*p.img.naturalWidth*s,
-          h:e.h*p.img.naturalHeight*s};
-  }
-  if(text.length && (action==='add' || rect)){
-    x.save();
-    let lineSize=Math.max(9,w*+$('size').value/100);
-    let margin=Math.max(1,w*.005);
-    if(rect){
-      lineSize=Math.min(lineSize,Math.max(9,rect.h/(text.length*1.12)));
-      while(lineSize>9 && text.some(t=>(x.font=lineSize+'px Arial',x.measureText(t).width>rect.w-margin*2)))lineSize-=.5;
-      x.beginPath();x.rect(rect.x,rect.y,rect.w,rect.h);x.clip();
-    } else {
-      while(lineSize>9 && text.some(t=>(x.font=lineSize+'px Arial',x.measureText(t).width>w-2*margin)))lineSize-=.5;
-    }
-    x.font=lineSize+'px Arial';x.textAlign='right';x.textBaseline='top';
-    x.fillStyle='white';x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=lineSize*.08;
-    let right=rect ? rect.x+rect.w-margin : w-margin;
-    let top=rect ? rect.y+Math.max(0,(rect.h-text.length*lineSize*1.08)/2)
-                 : h-margin-text.length*lineSize*1.08;
-    text.forEach((line,i)=>x.fillText(line,right,top+i*lineSize*1.08));
-    x.restore();
-  }
-}
-if(logo&&$('showlogo').checked){let W=w*+$('logosize').value/100,H=W*logo.naturalHeight/logo.naturalWidth;x.shadowBlur=0;x.drawImage(logo,w-W,0,W,H)}return c}
-function redraw(){cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{if(!active())return;render(active(),canvas,1200);if(selection){ctx.save();ctx.strokeStyle='#00eaff';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.strokeRect(selection.x*canvas.width,selection.y*canvas.height,selection.w*canvas.width,selection.h*canvas.height);ctx.restore()}})}
-const pos=e=>{let r=canvas.getBoundingClientRect();return{x:clamp((e.clientX-r.left)/r.width,0,1),y:clamp((e.clientY-r.top)/r.height,0,1)}};
-canvas.onpointerdown=e=>{if($('mode').value==='none'||!active())return;point=pos(e);canvas.setPointerCapture(e.pointerId)};
-canvas.onpointermove=e=>{if(!point)return;let p=pos(e);selection={x:Math.min(point.x,p.x),y:Math.min(point.y,p.y),w:Math.abs(point.x-p.x),h:Math.abs(point.y-p.y)};redraw()};
-canvas.onpointerup=e=>{if(!point)return;point=null;if(selection?.w<.01||selection?.h<.01){selection=null;redraw();return}if($('mode').value==='erase'){ $('watermarkType').value='replace';let b=bounds(active()),i=active().img;active().erase={x:(b.x+selection.x*b.w)/i.naturalWidth,y:(b.y+selection.y*b.h)/i.naturalHeight,w:selection.w*b.w/i.naturalWidth,h:selection.h*b.h/i.naturalHeight};selection=null;$('status').textContent='Zona del rótulo marcada. Escribe los nuevos datos a la izquierda.';redraw()}};
-$('cropbutton').onclick=()=>{let p=active();if(!p||!selection||$('mode').value!=='crop')return;let b=bounds(p),i=p.img;p.crop={x:(b.x+selection.x*b.w)/i.naturalWidth,y:(b.y+selection.y*b.h)/i.naturalHeight,w:selection.w*b.w/i.naturalWidth,h:selection.h*b.h/i.naturalHeight};selection=null;redraw()};
-$('undocrop').onclick=()=>{if(active()){active().crop=null;selection=null;redraw()}};$('undoerase').onclick=()=>{if(active()){active().erase=null;redraw()}};
-for(let k of ['watermarkType','node','date','coords','showtext','showlogo','logosize','age','sat','bright','contrast','size','batch'])$(k).addEventListener('input',()=>{if(['node','date','coords'].includes(k))saveFields();if(k==='watermarkType'){$('editHelp').textContent=$('watermarkType').value==='replace'?'Marca con el ratón la zona del rótulo original; el nuevo texto se dibujará solo en esa zona.':$('watermarkType').value==='add'?'Se colocará un rótulo nuevo abajo a la derecha. Utiliza esta opción solo en fotos sin rótulo.':'El texto original no se modifica.';}$('ageval').textContent=$('age').value+'%';$('satval').textContent=$('sat').value+'%';$('brightval').textContent=$('bright').value+'%';$('contrastval').textContent=$('contrast').value+'%';$('sizeval').textContent=$('size').value+'%';$('logosizeval').textContent=$('logosize').value+'%';redraw()});
-
-$('applyLogo').onclick=()=>{if(!logo){$('logo').click();return}$('showlogo').checked=true;redraw();$('status').textContent='Logo aplicado en la esquina superior derecha de la imagen recortada.'};
-$('removeText').onclick=()=>{if(!active())return;if(!active().erase){$('status').textContent='Usa OCR o selecciona el rótulo anterior antes de borrarlo.';return}$('watermarkType').value='replace';$('showtext').checked=false;redraw();$('status').textContent='Zona del rótulo anterior cubierta. Revisa el fondo antes de descargar.'};
-$('ocr').onclick=async()=>{
- const p=active();if(!p)return;
- if(!window.Tesseract){$('status').textContent='OCR requiere conexión a internet';return}
- let btn=$('ocr');btn.disabled=true;$('status').textContent='Leyendo rótulo y localizando su área…';
- try{
-  let im=p.img,W=im.naturalWidth,H=im.naturalHeight;
-  let scan=document.createElement('canvas'),scale=Math.min(1,1600/W);
-  scan.width=Math.round(W*scale);scan.height=Math.round(H*.48*scale);
-  let context=scan.getContext('2d');
-  context.drawImage(im,0,H*.52,W,H*.48,0,0,scan.width,scan.height);
-  let result=await Tesseract.recognize(scan,'eng');
-  let lines=(result.data.text||'').split(/\\r?\\n/).map(t=>t.trim()).filter(Boolean);
-  let node=lines.find(t=>/[A-Z]\\d{3,5}[_ ]SM/i.test(t));
-  let date=lines.find(t=>/20\\d\\d/.test(t));
-  let coords=lines.find(t=>/[−-]\\d+[.,]\\d+.*[−-]\\d+[.,]\\d+/.test(t));
-  if(node)$('node').value=node;
-  if(date)$('date').value=date;
-  if(coords)$('coords').value=coords;
-  let boxes=(result.data.lines||[]).filter(t=>t.text && /\\d|SM|[SW]/i.test(t.text)).map(t=>t.bbox).filter(Boolean);
-  if(!boxes.length)boxes=(result.data.words||[]).filter(t=>t.text && /\\d|SM|[SW]/i.test(t.text)).map(t=>t.bbox).filter(Boolean);
-  if(boxes.length && (node||date||coords)){
-   let x0=Math.min(...boxes.map(t=>t.x0)),y0=Math.min(...boxes.map(t=>t.y0)),
-       x1=Math.max(...boxes.map(t=>t.x1)),y1=Math.max(...boxes.map(t=>t.y1));
-   let margin=Math.max(5,scan.width*.005);
-   x0=clamp(x0-margin,0,scan.width);y0=clamp(y0-margin,0,scan.height);
-   x1=clamp(x1+margin,0,scan.width);y1=clamp(y1+margin,0,scan.height);
-   p.erase={x:x0/scale/W,y:(H*.52+y0/scale)/H,w:(x1-x0)/scale/W,h:(y1-y0)/scale/H};
-   $('watermarkType').value='replace';
-   $('showtext').checked=true;
-   $('status').textContent='OCR detectó el rótulo y preparó el reemplazo en esa región. Verifica el texto y la selección.';
-  }else{
-   $('status').textContent='OCR leyó el texto, pero no delimitó la región con suficiente precisión. Selecciónala manualmente.';
-  }
-  saveFields();redraw();
- }catch(e){$('status').textContent='OCR no completado: '+e.message}
- finally{btn.disabled=false}
-};
-function fileName(p,n,used){let mode=$('naming').value,fields=$('batch').checked?getFields():p.fields,base=(mode==='original'?p.file.name.replace(/\.[^.]+$/,'')+'_editada':fields.node||p.file.name.replace(/\.[^.]+$/,''));if(mode==='number')base+='_'+String(n+1).padStart(3,'0');base=base.replace(/[\\/:*?"<>|]/g,'_').slice(0,100).trim();let ext=$('format').value==='image/png'?'.png':'.jpg',name=base+ext,c=2;while(used.has(name.toLowerCase()))name=base+'_'+c+++ext;used.add(name.toLowerCase());return name}
-const toBlob=c=>new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(Error('Error al generar archivo')),$('format').value,.93));
-function download(blob,name){let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),15000)}
-$('save').onclick=async()=>{if(!active())return;saveFields();if($('watermarkType').value==='replace'&&!active().erase&&$('showtext').checked){$('status').textContent='Primero marca el área del rótulo original; no se superpondrá texto.';return}try{let c=document.createElement('canvas');render(active(),c);download(await toBlob(c),fileName(active(),current,new Set()));$('status').textContent='Fotografía descargada'}catch(e){$('status').textContent=e.message}};
-$('zip').onclick=async()=>{if(busy||!photos.length)return;if(!window.JSZip){$('status').textContent='ZIP requiere conexión a internet';return}busy=true;$('zip').disabled=true;saveFields();if($('watermarkType').value==='replace'&&photos.some(p=>!p.erase)&&$('showtext').checked){$('status').textContent='Hay fotos sin área de rótulo marcada. Usa Agregar rótulo para fotos sin marca o marca las áreas antes de exportar.';busy=false;$('zip').disabled=false;return}try{let archive=new JSZip(),used=new Set(),c=document.createElement('canvas');for(let i=0;i<photos.length;i++){render(photos[i],c);archive.file(fileName(photos[i],i,used),await toBlob(c));$('status').textContent='Procesando '+(i+1)+' de '+photos.length;await new Promise(r=>setTimeout(r,0))}download(await archive.generateAsync({type:'blob',compression:'STORE'}),'FotoNodos-Studio.zip');$('status').textContent='ZIP descargado'}catch(e){$('status').textContent=e.message}finally{busy=false;$('zip').disabled=false}};
-show();
-</script></html>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1426">
+<meta name="description" content="FotoNodos Studio: editor independiente de fotografías y rótulos de nodos.">
+<title>FotoNodos Studio | Editor fotográfico</title>
+<link rel="stylesheet" href="/styles.css?v=4">
+</head>
+<body>
+<div id="app">
+<header class="topbar">
+ <div class="brand">
+  <div class="brand-mark">FN<span>.</span></div>
+  <div><div class="brand-title">FotoNodos <strong>Studio</strong></div><div class="brand-subtitle">ESTUDIO FOTOGRÁFICO DE NODOS</div></div>
+ </div>
+ <div class="header-right">
+  <span class="private-tag"><span class="live-dot"></span> Procesamiento en tu navegador</span>
+  <span class="image-count" id="countHeader">0 fotografías</span>
+  <button class="btn btn-primary header-export" id="topZip">↓ Descargar ZIP</button>
+ </div>
+</header>
+<main class="app-grid">
+ <aside class="library">
+  <div class="section-heading"><span>PROYECTO</span><strong>Mis fotografías</strong></div>
+  <label for="upload" class="upload-card" id="dropZone" tabindex="0">
+   <span class="upload-icon">＋</span><strong>Agregar fotografías</strong><span>Arrastra archivos o haz clic aquí</span><small>JPG, PNG y WEBP · Archivos múltiples</small>
+  </label>
+  <input id="upload" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+  <div class="library-actions">
+   <button class="btn btn-secondary btn-sm" id="ocrBatch">◉ OCR de todas</button>
+   <button class="btn btn-text btn-sm" id="clearAll">Limpiar</button>
+  </div>
+  <div class="library-label"><span>FOTOGRAFÍAS <b id="countLibrary">0</b></span><span id="libraryState">Sin cargar</span></div>
+  <div class="photo-list" id="photoList"></div>
+  <div class="library-footer"><span>✦</span> Cada fotografía conserva sus propios datos y ajustes. No se modifican los originales.</div>
+ </aside>
+ <section class="editor">
+  <div class="editor-heading">
+    <div class="editor-heading-text"><div class="eyebrow" id="editorEyebrow">EDITOR</div><h1 id="activeTitle">Selecciona una fotografía</h1><p id="editorSubtitle">Carga fotografías para empezar</p></div>
+    <div class="navigation"><button class="icon-button" id="prev" title="Fotografía anterior">‹</button><span id="navCount">0 / 0</span><button class="icon-button" id="next" title="Siguiente fotografía">›</button></div>
+  </div>
+  <div class="tools">
+    <div class="tools-primary">
+     <button class="tool selected" data-tool="view">☐ <span>Vista</span></button>
+     <button class="tool" data-tool="watermark">▧ <span>Seleccionar rótulo</span></button>
+     <button class="tool" data-tool="crop">⌗ <span>Recortar</span></button>
+     <button class="tool" data-tool="logo">✥ <span>Mover logo</span></button>
+    </div>
+    <div class="tools-secondary"><button class="btn btn-secondary btn-sm" id="applyCrop" hidden>Aplicar recorte</button><button class="btn btn-text btn-sm" id="undoCrop" hidden>Restaurar recorte</button><span class="zoom-label">Zoom</span><select id="zoom" aria-label="Zoom"><option value="fit">Ajustar</option><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option></select></div>
+  </div>
+  <div class="stage-wrapper" id="stageWrapper">
+   <div class="empty-state" id="emptyState"><div class="empty-icon">▧</div><h2>Tu espacio para editar fotografías</h2><p>Agrega una o varias fotografías para modificar sus rótulos, recortarlas y aplicar el logo YOFC.</p><label for="upload" class="btn btn-primary">＋ Cargar fotos</label></div>
+   <div class="canvas-container" id="canvasContainer" hidden><canvas id="preview" aria-label="Vista previa editable"></canvas></div>
+  </div>
+  <div class="editor-foot">
+   <div class="foot-left"><span id="imageDimensions">Sin fotografía</span><span class="separator">•</span><span id="toolHelp">Selecciona una herramienta</span></div>
+   <div class="foot-right"><label class="toggle-row"><input id="beforeAfter" type="checkbox"> Ver original</label></div>
+  </div>
+  <div class="tip-line"><span>ⓘ</span><span id="tipText">Al leer el rótulo con OCR, sus datos se cargan únicamente en la fotografía seleccionada. Puedes corregirlos antes de exportar.</span></div>
+ </section>
+ <aside class="inspector">
+  <div class="inspector-top"><div><span class="eyebrow">PANEL DE EDICIÓN</span><h2 id="inspectorTitle">Propiedades</h2></div><span class="selected-chip" id="selectedChip">Sin imagen</span></div>
+  <nav class="tabs" aria-label="Herramientas">
+    <button class="tab active" data-tab="watermark">Rótulo</button>
+    <button class="tab" data-tab="logo">Logo</button>
+    <button class="tab" data-tab="adjust">Ajustes</button>
+    <button class="tab" data-tab="export">Exportar</button>
+  </nav>
+  <div class="tab-body">
+  <section class="tab-panel active" data-panel="watermark">
+    <div class="panel-title"><h3>Rótulo de esta fotografía</h3><span class="mini-badge" id="ocrState">Sin leer</span></div>
+    <p class="muted">Lee el rótulo original con OCR, corrige los campos y reemplázalo dentro de su misma zona.</p>
+    <div class="action-grid"><button class="btn btn-primary" id="ocrSingle">◉ Leer rótulo (OCR)</button><button class="btn btn-secondary" id="markRegion">⌗ Marcar zona</button></div>
+    <label class="field-label" for="watermarkMode">Acción sobre el rótulo</label>
+    <select id="watermarkMode"><option value="replace">Reemplazar el rótulo existente</option><option value="remove">Borrar el rótulo existente</option><option value="add">Agregar rótulo (foto sin rótulo)</option><option value="keep">Conservar el original</option></select>
+    <div class="notice" id="regionNotice">Para reemplazar, primero lee el rótulo con OCR o marca su área en la fotografía. No se superpondrá un segundo texto.</div>
+    <label class="field-label" for="fieldNode">Nombre del nodo</label><input class="field" id="fieldNode" placeholder="Ej. A4204_SM_LIMA" autocomplete="off">
+    <label class="field-label" for="fieldDate">Fecha y hora</label><input class="field" id="fieldDate" placeholder="Ej. 07 nov. 2023 06:21:35 p. m.">
+    <label class="field-label" for="fieldCoords">Coordenadas</label><input class="field" id="fieldCoords" placeholder="Ej. −6.4161S −75.7629W">
+    <div class="field-inline"><label class="field-label" for="fontSize">Tamaño del rótulo</label><output id="fontSizeVal">100%</output></div>
+    <input id="fontSize" type="range" min="65" max="145" value="100">
+    <label class="field-label" for="repairMethod">Reconstrucción del fondo</label>
+    <select id="repairMethod"><option value="blend">Reconstruir desde bordes (suave)</option><option value="clone">Clonar la zona superior</option></select>
+    <div class="divider"></div>
+    <div class="filename-label">NOMBRE DE DESCARGA</div>
+    <div class="filename-preview" id="fileNamePreview">—</div>
+    <p class="tiny">El nombre se actualizará al escribir el nodo de esta foto. Si existen nombres repetidos se añadirá numeración.</p>
+  </section>
+  <section class="tab-panel" data-panel="logo">
+    <div class="panel-title"><h3>Logo de empresa</h3><span class="mini-badge success">YOFC incluido</span></div>
+    <div class="logo-card"><div class="logo-preview"><img id="logoPreview" alt="Logo YOFC predeterminado"></div><div><strong>YOFC</strong><small>Se aplica automáticamente a tus fotos</small></div></div>
+    <label class="switch-line"><span>Mostrar logo en esta fotografía</span><input id="showLogo" type="checkbox" checked></label>
+    <div class="action-grid"><button class="btn btn-secondary" id="resetLogo">Usar logo YOFC</button><label class="btn btn-secondary file-btn" for="customLogo">Cambiar logo</label><input id="customLogo" type="file" accept="image/*" hidden></div>
+    <p class="muted">Tu logo adjunto ya está incluido. No necesitas volver a seleccionarlo. También puedes arrastrarlo sobre la imagen para moverlo.</p>
+    <div class="field-inline"><label class="field-label" for="logoSize">Ancho del logo</label><output id="logoSizeVal">17%</output></div>
+    <input type="range" id="logoSize" min="6" max="35" value="17">
+    <div class="field-inline"><label class="field-label" for="logoX">Posición horizontal</label><output id="logoXVal">98%</output></div>
+    <input type="range" id="logoX" min="5" max="100" value="98">
+    <div class="field-inline"><label class="field-label" for="logoY">Posición vertical</label><output id="logoYVal">2%</output></div>
+    <input type="range" id="logoY" min="0" max="90" value="2">
+    <div class="notice">El logo se coloca sobre la fotografía ya recortada. Estos ajustes pertenecen solo a la foto actual.</div>
+  </section>
+  <section class="tab-panel" data-panel="adjust">
+    <div class="panel-title"><h3>Acabado fotográfico</h3><span class="mini-badge">Por fotografía</span></div>
+    <p class="muted">Controla el aspecto visual sin cambiar el archivo original. El efecto de antigüedad es estético, no acredita una fecha de captura.</p>
+    <div class="action-grid"><button id="twoYearPreset" class="btn btn-secondary">⏳ Aspecto ~2 años</button><button id="resetAdjust" class="btn btn-secondary">Restablecer</button></div>
+    <div class="slider-field"><div><label for="aging">Envejecimiento</label><output id="agingVal">0%</output></div><input id="aging" type="range" min="0" max="100" value="0"></div>
+    <div class="slider-field"><div><label for="saturation">Saturación</label><output id="saturationVal">100%</output></div><input id="saturation" type="range" min="0" max="150" value="100"></div>
+    <div class="slider-field"><div><label for="brightness">Iluminación</label><output id="brightnessVal">100%</output></div><input id="brightness" type="range" min="40" max="150" value="100"></div>
+    <div class="slider-field"><div><label for="contrast">Contraste</label><output id="contrastVal">100%</output></div><input id="contrast" type="range" min="40" max="160" value="100"></div>
+    <div class="slider-field"><div><label for="warmth">Temperatura</label><output id="warmthVal">0</output></div><input id="warmth" type="range" min="-50" max="50" value="0"></div>
+    <div class="slider-field"><div><label for="grain">Grano</label><output id="grainVal">0%</output></div><input id="grain" type="range" min="0" max="100" value="0"></div>
+  </section>
+  <section class="tab-panel" data-panel="export">
+    <div class="panel-title"><h3>Exportación y nombres</h3></div>
+    <p class="muted">Cada fotografía se guarda con los datos de su propio rótulo final.</p>
+    <label class="field-label" for="namePattern">Cómo nombrar archivos</label>
+    <select id="namePattern"><option value="node">Nombre del nodo (automático)</option><option value="node_number">Nombre del nodo + número</option><option value="original">Nombre original + editada</option></select>
+    <label class="field-label" for="outputFormat">Formato</label><select id="outputFormat"><option value="image/jpeg">JPG (recomendado)</option><option value="image/png">PNG (sin pérdida)</option></select>
+    <div class="field-inline"><label class="field-label" for="jpegQuality">Calidad JPG</label><output id="jpegQualityVal">94%</output></div><input id="jpegQuality" type="range" min="70" max="100" value="94">
+    <div class="filename-label">VISTA PREVIA DEL NOMBRE</div><div class="filename-preview" id="exportNamePreview">—</div>
+    <div class="export-buttons"><button class="btn btn-primary" id="downloadCurrent">↓ Descargar fotografía</button><button class="btn btn-secondary" id="downloadAll">▣ Descargar todas en ZIP</button></div>
+    <div class="progress-wrap" id="progressWrap" hidden><div id="progressBar"></div></div>
+    <p class="muted">Los archivos originales se conservan; la descarga incluye únicamente las versiones editadas.</p>
+  </section>
+  </div>
+  <div class="inspector-footer"><span id="status" role="status">Preparado para trabajar.</span></div>
+ </aside>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="/logo.js?v=4"></script>
+<script src="/app.js?v=4"></script>
+</body>
+</html>
