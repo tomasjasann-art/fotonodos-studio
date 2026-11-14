@@ -530,6 +530,169 @@ $('jpegQuality').addEventListener('input',()=>{$('jpegQualityVal').textContent=$
 $('downloadCurrent').addEventListener('click',exportSingle);
 $('downloadAll').addEventListener('click',exportAll);
 $('topZip').addEventListener('click',()=>{switchTab('export');exportAll();});
+
+/* OpenAI image editor. API credentials remain on Vercel, never in this file. */
+async function checkAIStatus(){
+ try{
+  const r=await fetch('/api/edit',{cache:'no-store'});
+  const info=await r.json();
+  const ready=Boolean(info.configured);
+  $('aiState').textContent=ready?'IA disponible':'Falta configurar';
+  $('aiState').classList.toggle('ready',ready);
+  $('aiState').classList.toggle('warn',!ready);
+  $('aiMessage').textContent=ready?
+   'La IA está conectada. Introduce la contraseña de acceso y escribe qué deseas modificar. Cada ejecución puede consumir crédito de API.':
+   'Para activar la IA, añade OPENAI_API_KEY y FOTONODOS_AI_PASSWORD en Vercel → FotoNodos Studio → Settings → Environment Variables y vuelve a desplegar.';
+  $('aiGenerate').disabled=!ready;
+ }catch(e){
+  $('aiState').textContent='Sin conexión';
+  $('aiMessage').textContent='No se pudo comprobar el servicio de IA. Revisa la configuración de Vercel.';
+ }
+}
+function aiNotice(text){
+ $('aiMessage').textContent=text;
+ status(text);
+}
+function canvasDataUrl(canvas,mime,quality){
+ return canvas.toDataURL(mime,quality);
+}
+function buildAIInput(photo,operation){
+ const crop=cropSource(photo),source=photo.aiImage||photo.image;
+ let maxSide=1400,work=document.createElement('canvas'),mask=document.createElement('canvas');
+ let imageData='',maskData=null,w=0,h=0,rect=null,scale=1;
+ for(let attempt=0;attempt<4;attempt++){
+  scale=Math.min(1,maxSide/Math.max(crop.w,crop.h));
+  w=Math.max(1,Math.round(crop.w*scale));
+  h=Math.max(1,Math.round(crop.h*scale));
+  work.width=w;work.height=h;
+  work.getContext('2d').drawImage(source,crop.x,crop.y,crop.w,crop.h,0,0,w,h);
+  imageData=canvasDataUrl(work,'image/jpeg',.78);
+  maskData=null;rect=null;
+  if(operation!=='full'){
+   rect=rectOnOutput(photo,photo.region,crop,scale,w,h);
+   if(!rect||rect.w<3||rect.h<3)throw Error('No hay un rótulo o región de edición dentro del recorte actual. Selecciónalo en la fotografía.');
+   mask.width=w;mask.height=h;
+   const g=mask.getContext('2d');
+   g.fillStyle='#fff';g.fillRect(0,0,w,h);
+   g.clearRect(rect.x,rect.y,rect.w,rect.h);
+   maskData=canvasDataUrl(mask,'image/png');
+  }
+  if(imageData.length+(maskData?.length||0)<3100000)break;
+  maxSide=Math.round(maxSide*.78);
+ }
+ if(imageData.length+(maskData?.length||0)>=3100000)throw Error('La imagen excede el límite de envío. Recórtala o utiliza una selección más pequeña.');
+ return{image:imageData,mask:maskData,crop,rect,scale};
+}
+async function parseAIInstruction(instruction,p,password){
+ const r=await fetch('/api/interpret',{
+  method:'POST',
+  headers:{'Content-Type':'application/json','X-Fotonodos-Password':password},
+  body:JSON.stringify({instruction,current:p.fields})});
+ let data={};
+ try{data=await r.json();}catch{throw Error('No fue posible interpretar la instrucción.');}
+ if(!r.ok)throw Error(data.error||'No fue posible interpretar las instrucciones.');
+ for(const field of ['node','date','coords']){
+  if(typeof data[field]==='string'&&data[field].trim())p.fields[field]=data[field].trim();
+ }
+ return data.imageInstruction||instruction;
+}
+async function applyAIResult(photo,blob,input,operation,instruction){
+ const tmpUrl=URL.createObjectURL(blob);
+ let generated;
+ try{generated=await createImage(tmpUrl);}catch(e){URL.revokeObjectURL(tmpUrl);throw Error('La IA devolvió una imagen que no se puede abrir.');}
+ const W=photo.image.naturalWidth,H=photo.image.naturalHeight;
+ const output=document.createElement('canvas');output.width=W;output.height=H;
+ const g=output.getContext('2d');
+ g.drawImage(photo.aiImage||photo.image,0,0,W,H);
+ const crop=input.crop;
+ let region=operation==='full'?{x:crop.x,y:crop.y,w:crop.w,h:crop.h}:{
+  x:photo.region.x*W,y:photo.region.y*H,w:photo.region.w*W,h:photo.region.h*H};
+ g.save();g.beginPath();g.rect(region.x,region.y,region.w,region.h);g.clip();
+ g.drawImage(generated,crop.x,crop.y,crop.w,crop.h);
+ g.restore();URL.revokeObjectURL(tmpUrl);
+ const finalBlob=await new Promise((resolve,reject)=>output.toBlob(b=>b?resolve(b):reject(Error('No se pudo integrar el resultado de IA.')),'image/jpeg',.94));
+ const url=URL.createObjectURL(finalBlob);
+ let resultImage;
+ try{resultImage=await createImage(url);}catch(e){URL.revokeObjectURL(url);throw e;}
+ photo.aiHistory.push({image:photo.aiImage,url:photo.aiUrl,clean:photo.aiCleanRegion,watermarkMode:photo.watermarkMode});
+ if(photo.aiHistory.length>4){
+  const old=photo.aiHistory.shift();if(old.url)URL.revokeObjectURL(old.url);
+ }
+ photo.aiImage=resultImage;photo.aiUrl=url;
+ photo.aiCleanRegion=operation==='label';
+ photo.watermarkMode=operation==='label'?'replace':'keep';
+ photo.aiEdits.push({instruction,mode:operation,editedAt:new Date().toISOString()});
+}
+async function generateWithAI(){
+ const p=active();if(!p){toast('Primero selecciona una fotografía.');return;}
+ if(busy){toast('Ya se está procesando una operación.');return;}
+ const password=$('aiPassword').value;
+ const instruction=$('aiInstruction').value.trim();
+ const operation=$('aiOperation').value;
+ if(!password){toast('Introduce la contraseña de IA configurada en Vercel.');return;}
+ if(!instruction){toast('Escribe qué deseas modificar en esta fotografía.');return;}
+ p.aiInstruction=instruction;
+ busy=true;$('aiGenerate').disabled=true;$('aiProgress').hidden=false;
+ try{
+  aiNotice('1/3 · Interpretando la instrucción y sus cambios de fecha, coordenadas o nodo…');
+  const prompt=await parseAIInstruction(instruction,p,password);
+  refreshNames();renderPhotoList();
+  if(operation==='label'&&!p.region){
+   aiNotice('2/3 · Buscando el rótulo original con OCR…');
+   try{await recognize(p);}catch(e){/* El usuario puede delimitarlo manualmente. */}
+  }
+  if(operation!=='full'&&!p.region){
+   showPhotoControls();
+   throw Error('No se localizó el rótulo. Pulsa «Seleccionar rótulo», marca su zona en la foto y vuelve a generar.');
+  }
+  const input=buildAIInput(p,operation);
+  aiNotice('2/3 · La IA está reconstruyendo la zona seleccionada…');
+  const response=await fetch('/api/edit',{
+   method:'POST',
+   headers:{'Content-Type':'application/json','X-Fotonodos-Password':password},
+   body:JSON.stringify({mode:operation,image:input.image,mask:input.mask,instructions:prompt})});
+  if(!response.ok){
+   const data=await response.json().catch(()=>({}));
+   throw Error(data.error||('La IA devolvió HTTP '+response.status));
+  }
+  aiNotice('3/3 · Integrando el resultado en la fotografía original…');
+  const generated=await response.blob();
+  await applyAIResult(p,generated,input,operation,instruction);
+  if(p===active()){showPhotoControls();schedulePreview();}
+  renderPhotoList();
+  aiNotice('Edición con IA completada. Revisa el resultado y descárgalo con el nombre de nodo.');
+  toast('La fotografía se editó con IA. Puedes deshacer.');
+ }catch(e){
+  aiNotice('No se pudo completar: '+e.message);
+ }finally{
+  busy=false;$('aiProgress').hidden=true;$('aiGenerate').disabled=false;
+ }
+}
+function undoAI(){
+ const p=active();if(!p||!p.aiHistory.length)return;
+ if(p.aiUrl)URL.revokeObjectURL(p.aiUrl);
+ const previous=p.aiHistory.pop();
+ p.aiImage=previous.image;p.aiUrl=previous.url;
+ p.aiCleanRegion=previous.clean;p.watermarkMode=previous.watermarkMode;
+ p.aiEdits.pop();
+ showPhotoControls();schedulePreview();
+ aiNotice('Se restauró la versión anterior de esta fotografía.');
+}
+$('aiInstruction').addEventListener('input',(e)=>{if(active())active().aiInstruction=e.target.value;});
+all('.ai-example').forEach(el=>el.addEventListener('click',()=>{
+ $('aiInstruction').value=el.dataset.example||'';
+ if(active())active().aiInstruction=$('aiInstruction').value;
+}));
+$('aiOperation').addEventListener('change',()=>{
+ const action=$('aiOperation').value;
+ $('aiRegionNotice').textContent=action==='full'?
+  'La IA editará toda la fotografía visible. Revisa el resultado porque puede modificar otros detalles.':
+  active()?.region?'Región de edición marcada para esta foto.':
+  'Debes marcar el área del rótulo con OCR o con la herramienta «Seleccionar rótulo».';
+});
+$('aiGenerate').addEventListener('click',generateWithAI);
+$('aiUndo').addEventListener('click',undoAI);
+
 window.addEventListener('keydown',e=>{
  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
  if(e.key==='ArrowRight'&&photos.length){e.preventDefault();selectPhoto((current+1)%photos.length);}
@@ -542,6 +705,7 @@ async function bootstrap(){
   catch(e){status('No se pudo cargar el logo predeterminado.');}
  }
  showPhotoControls();renderPhotoList();switchTool('view');switchTab('watermark');
+ checkAIStatus();
 }
 bootstrap();
 })();
