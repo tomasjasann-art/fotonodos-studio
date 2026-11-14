@@ -33,7 +33,7 @@ async function addFiles(list){
   let url=URL.createObjectURL(file);
   try{
    const image=await createImage(url);
-   photos.push({file,url,image,fields:{node:'',date:'',coords:''},watermarkMode:'replace',region:null,crop:null,pendingCrop:null,fontSize:100,repairMethod:'blend',ocrStatus:'not',adjust:defaultAdjust(),logo:defaultLogo(),customLogo:null});
+   photos.push({file,url,image,fields:{node:'',date:'',coords:''},watermarkMode:'replace',region:null,crop:null,pendingCrop:null,fontSize:100,repairMethod:'blend',ocrStatus:'not',adjust:defaultAdjust(),logo:defaultLogo(),customLogo:null,aiImage:null,aiUrl:null,aiCleanRegion:false,aiHistory:[],aiInstruction:'',aiEdits:[]});
    count++;
   }catch(error){URL.revokeObjectURL(url);}
  }
@@ -99,6 +99,9 @@ function showPhotoControls(){
  $('fieldNode').value=p.fields.node;
  $('fieldDate').value=p.fields.date;
  $('fieldCoords').value=p.fields.coords;
+ $('aiInstruction').value=p.aiInstruction||'';
+ $('aiUndo').disabled=!(p.aiHistory&&p.aiHistory.length);
+ $('aiRegionNotice').textContent=p.region?'Zona de edición seleccionada para esta foto.':'Usa el OCR o marca el área del rótulo. Para edición de toda la imagen elige «Fotografía completa».';
  $('watermarkMode').value=p.watermarkMode;
  $('fontSize').value=p.fontSize;
  $('fontSizeVal').textContent=p.fontSize+'%';
@@ -134,7 +137,7 @@ function switchTab(name){
  tab=name;
  all('.tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));
  all('.tab-panel').forEach(el=>el.classList.toggle('active',el.dataset.panel===name));
- $('inspectorTitle').textContent=({watermark:'Rótulos',logo:'Logo de empresa',adjust:'Ajustes visuales',export:'Descargas'})[name]||'Propiedades';
+ $('inspectorTitle').textContent=({watermark:'Rótulos',ai:'Editor con IA',logo:'Logo de empresa',adjust:'Ajustes visuales',export:'Descargas'})[name]||'Propiedades';
 }
 function switchTool(name){
  mode=name;dragSelection=null;dragOrigin=null;
@@ -245,10 +248,10 @@ function render(p,canvas,maxSize=Infinity,original=false){
  const w=Math.max(1,Math.round(crop.w*scale)),h=Math.max(1,Math.round(crop.h*scale));
  canvas.width=w;canvas.height=h;
  const g=canvas.getContext('2d',{willReadFrequently:true});
- g.drawImage(p.image,crop.x,crop.y,crop.w,crop.h,0,0,w,h);
+ g.drawImage(original?p.image:(p.aiImage||p.image),crop.x,crop.y,crop.w,crop.h,0,0,w,h);
  if(original)return canvas;
  const rect=rectOnOutput(p,p.region,crop,scale,w,h);
- if((p.watermarkMode==='replace'||p.watermarkMode==='remove')&&rect)repairRegion(g,w,h,rect,p.repairMethod);
+ if((p.watermarkMode==='replace'||p.watermarkMode==='remove')&&rect&&!p.aiCleanRegion)repairRegion(g,w,h,rect,p.repairMethod);
  applyAppearance(g,w,h,p.adjust);
  if(p.watermarkMode==='replace'&&rect)drawLabel(g,p,rect,w,h);
  if(p.watermarkMode==='add'){
@@ -294,7 +297,7 @@ function originalRect(p,v){
  return{x:(crop.x+v.x*crop.w)/W,y:(crop.y+v.y*crop.h)/H,w:v.w*crop.w/W,h:v.h*crop.h/H};
 }
 function assignRegion(p,r){
- p.region=originalRect(p,r);p.watermarkMode='replace';
+ p.region=originalRect(p,r);p.aiCleanRegion=false;p.watermarkMode='replace';
  $('watermarkMode').value='replace';updateRegionNotice();
  status('Zona del rótulo guardada para esta fotografía. Edita los campos y observa el cambio.');
  renderPhotoList();schedulePreview();
@@ -386,7 +389,7 @@ async function recognize(p){
   if(parsed.date)p.fields.date=parsed.date;
   if(parsed.coords)p.fields.coords=parsed.coords;
   const region=findOcrRegion(data,p,scan);
-  if(region){p.region=region;p.watermarkMode='replace';}
+  if(region){p.region=region;p.aiCleanRegion=false;p.watermarkMode='replace';}
   p.ocrStatus=region?'done':'failed';
   return{region,parsed};
  }catch(e){p.ocrStatus='failed';throw e;}
@@ -451,6 +454,8 @@ async function exportAll(){
    status('Exportando '+(i+1)+' de '+photos.length+' fotografías…');
    await new Promise(done=>setTimeout(done,0));
   }
+  const audit=photos.filter(p=>p.aiEdits?.length).map(p=>({originalFile:p.file.name,outputFile:filenameOf(p,photos.indexOf(p)),modifiedAt:new Date().toISOString(),editedWithAI:true,instructions:p.aiEdits,finalLabel:{...p.fields}}));
+  if(audit.length)zip.file('FotoNodos_historial_ediciones.json',JSON.stringify({notice:'Ediciones digitales realizadas sobre fotografías originales; no certifica fecha de captura',files:audit},null,2));
   const result=await zip.generateAsync({type:'blob',compression:'STORE'},meta=>{$('progressBar').style.width=(80+meta.percent*.2)+'%';});
   downloadBlob(result,'FotoNodos_Studio.zip');
   status('Se exportaron '+photos.length+' fotografías con nombres basados en sus nodos.');
@@ -465,7 +470,7 @@ $('dropZone').addEventListener('drop',e=>{e.preventDefault();$('dropZone').class
 $('dropZone').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('upload').click();}});
 $('clearAll').addEventListener('click',()=>{
  if(!photos.length)return;
- photos.forEach(p=>URL.revokeObjectURL(p.url));
+ photos.forEach(p=>{URL.revokeObjectURL(p.url);if(p.aiUrl)URL.revokeObjectURL(p.aiUrl);for(const h of p.aiHistory||[])if(h.url)URL.revokeObjectURL(h.url);});
  photos=[];current=-1;
  renderPhotoList();showPhotoControls();toast('Lista de fotografías vaciada.');
 });
