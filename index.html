@@ -1,9 +1,9 @@
 <!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FotoNodos Studio</title><style>
 *{box-sizing:border-box}body{margin:0;font:14px Arial;background:#0b1625;color:#e9f2ff}header{background:#15283e;padding:18px 24px;border-bottom:1px solid #37516e}h1{margin:0;font-size:25px}main{display:grid;grid-template-columns:350px minmax(0,1fr);height:calc(100vh - 79px)}aside{overflow:auto;padding:12px;background:#102035}section{border:1px solid #364c69;background:#192d46;border-radius:11px;padding:15px;margin-bottom:12px}h3{margin:0 0 12px}label{display:block;margin:12px 0 5px}input:not([type=checkbox]):not([type=range]),select{width:100%;padding:9px;background:#0e1d30;color:white;border:1px solid #526882;border-radius:6px}input[type=range]{width:100%}button{background:#2879ed;border:0;color:white;padding:10px 12px;margin:3px 3px 3px 0;border-radius:7px;cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{opacity:.5}.view{padding:15px;min-width:0;display:flex;flex-direction:column;gap:12px}#stage{flex:1;min-height:300px;display:flex;align-items:center;justify-content:center;background:#071120;border:1px dashed #436182;border-radius:12px;overflow:auto}canvas{display:none;max-width:100%;max-height:70vh;touch-action:none;cursor:crosshair}#thumbs{display:flex;gap:6px;overflow:auto;min-height:90px}#thumbs button{background:#263e58;width:115px;flex:none;font-size:11px;word-break:break-all}#thumbs img{display:block;width:100%;height:65px;object-fit:cover}#thumbs .active{outline:2px solid #4ec6ff}.hint{color:#a6bcd3;font-size:12px}#status{color:#77d7d2} @media(max-width:750px){main{display:block;height:auto}.view{min-height:650px}}
 </style><header><h1>📷 FotoNodos Studio</h1><span class="hint">Editor independiente · Las fotos se procesan en tu navegador</span></header><main><aside>
-<section><h3>1. Cargar fotografías</h3><input id="files" type="file" accept="image/*" multiple><label>Logo de la empresa</label><input id="logo" type="file" accept="image/*"><label><input id="showlogo" type="checkbox" checked> Mostrar logo arriba derecha</label><label>Ancho del logo <output id="logosizeval">14%</output></label><input id="logosize" type="range" min="5" max="35" value="14"><button id="clear">Limpiar lista</button></section>
-<section><h3>2. Editar foto</h3><label>Herramienta</label><select id="mode"><option value="erase">Seleccionar rótulo anterior (para reemplazar)</option><option value="crop">Seleccionar recorte</option><option value="none">Visualizar</option></select><button id="cropbutton">Aplicar recorte</button><button id="undocrop">Quitar recorte</button><button id="undoerase">Quitar reemplazo</button><p class="hint">Arrastra sobre la foto para seleccionar. Para ocultar el rótulo antiguo se copiará una zona cercana del fondo, que puede necesitar retoques.</p><label>Envejecimiento visual <output id="ageval">0%</output></label><input id="age" type="range" min="0" max="40" value="0"></section>
-<section><h3>3. Marca de agua</h3><label>¿Qué quieres hacer con el rótulo?</label><select id="watermarkType"><option value="replace">Reemplazar rótulo existente (sin superponer)</option><option value="add">Agregar rótulo a una foto sin marca de agua</option><option value="keep">Conservar rótulo original sin modificarlo</option></select><p class="hint" id="editHelp">Para reemplazar: selecciona «Seleccionar rótulo anterior» en la sección 2 y arrastra un rectángulo que cubra exactamente las tres líneas de texto. Luego escribe los datos nuevos.</p><button id="ocr">Leer rótulo con OCR</button><label>Nombre del nodo</label><input id="node" placeholder="Ej. A4035_SM_ALTO RIOJA"><label>Fecha y hora</label><input id="date" placeholder="Introduce la fecha y hora"><label>Coordenadas</label><input id="coords" placeholder="Introduce las coordenadas"><label><input id="showtext" type="checkbox" checked> Mostrar rótulo editado</label><label>Tamaño del texto <output id="sizeval">3.2%</output></label><input id="size" type="range" min="1.5" max="5" step=".1" value="3.2"><label><input id="batch" type="checkbox"> Usar los mismos datos en todas las fotos</label></section>
+<section><h3>1. Cargar fotografías</h3><input id="files" type="file" accept="image/*" multiple><label>Logo de la empresa (puedes cargarlo antes o después de recortar)</label><input id="logo" type="file" accept="image/*"><button id="applyLogo" type="button">Aplicar logo a la foto</button><label><input id="showlogo" type="checkbox" checked> Mostrar logo arriba derecha</label><label>Ancho del logo <output id="logosizeval">14%</output></label><input id="logosize" type="range" min="5" max="35" value="14"><button id="clear">Limpiar lista</button></section>
+<section><h3>2. Editar foto</h3><label>Herramienta</label><select id="mode"><option value="erase">Seleccionar rótulo anterior (para reemplazar)</option><option value="crop">Seleccionar recorte</option><option value="none">Visualizar</option></select><button id="cropbutton">Aplicar recorte</button><button id="undocrop">Quitar recorte</button><button id="undoerase">Quitar reemplazo</button><p class="hint">Arrastra sobre la foto para seleccionar. Para ocultar el rótulo antiguo se copiará una zona cercana del fondo, que puede necesitar retoques.</p><label>Envejecimiento visual <output id="ageval">0%</output></label><input id="age" type="range" min="0" max="100" value="0"><label>Saturación <output id="satval">100%</output></label><input id="sat" type="range" min="0" max="150" value="100"><label>Iluminación <output id="brightval">100%</output></label><input id="bright" type="range" min="40" max="140" value="100"><label>Contraste <output id="contrastval">100%</output></label><input id="contrast" type="range" min="40" max="150" value="100"><p class="hint">Estos efectos son visuales, no prueban la antigüedad real de la fotografía.</p></section>
+<section><h3>3. Marca de agua</h3><label>¿Qué quieres hacer con el rótulo?</label><select id="watermarkType"><option value="replace">Reemplazar rótulo existente (sin superponer)</option><option value="add">Agregar rótulo a una foto sin marca de agua</option><option value="keep">Conservar rótulo original sin modificarlo</option></select><p class="hint" id="editHelp">Para reemplazar: selecciona «Seleccionar rótulo anterior» en la sección 2 y arrastra un rectángulo que cubra exactamente las tres líneas de texto. Luego escribe los datos nuevos.</p><button id="ocr">Leer rótulo con OCR y preparar reemplazo</button><button id="removeText">Borrar rótulo detectado</button><label>Nombre del nodo</label><input id="node" placeholder="Ej. A4035_SM_ALTO RIOJA"><label>Fecha y hora</label><input id="date" placeholder="Introduce la fecha y hora"><label>Coordenadas</label><input id="coords" placeholder="Introduce las coordenadas"><label><input id="showtext" type="checkbox" checked> Mostrar rótulo editado</label><label>Tamaño del texto <output id="sizeval">3.2%</output></label><input id="size" type="range" min="1.5" max="5" step=".1" value="3.2"><label><input id="batch" type="checkbox"> Usar los mismos datos en todas las fotos</label></section>
 <section><h3>4. Exportar</h3><label>Nombre del archivo</label><select id="naming"><option value="node">Nombre del nodo</option><option value="number">Nodo + número correlativo</option><option value="original">Nombre original</option></select><label>Formato</label><select id="format"><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select><button id="save">Descargar foto</button><button id="zip">Descargar todas en ZIP</button><p id="status">Carga una fotografía para comenzar.</p></section>
 </aside><div class="view"><div><strong id="name">Ninguna fotografía</strong> <button id="prev">◀</button><button id="next">▶</button></div><div id="stage"><span id="empty" class="hint">Arrastra aquí tus fotografías o selecciónalas desde el panel.</span><canvas id="canvas"></canvas></div><div id="thumbs"></div><div class="hint">La vista previa está optimizada. La exportación usa la resolución original. Comprueba fechas y coordenadas antes de usar las fotografías como evidencia.</div></div></main>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script><script>
@@ -17,8 +17,29 @@ $('clear').onclick=()=>{photos=[];current=0;selection=null;show()};$('prev').onc
 function move(n){if(!photos.length)return;saveFields();current=(current+n+photos.length)%photos.length;setFields(active().fields);selection=null;show()}
 function bounds(p){let w=p.img.naturalWidth,h=p.img.naturalHeight,c=p.crop;return c?{x:c.x*w,y:c.y*h,w:c.w*w,h:c.h*h}:{x:0,y:0,w,h}}
 function render(p,c,max=Infinity){let region=bounds(p),s=Math.min(1,max/Math.max(region.w,region.h)),w=Math.max(1,Math.round(region.w*s)),h=Math.max(1,Math.round(region.h*s));c.width=w;c.height=h;let x=c.getContext('2d',{willReadFrequently:true});x.drawImage(p.img,region.x,region.y,region.w,region.h,0,0,w,h);
-if(p.erase){let e=p.erase,X=Math.round((e.x*p.img.naturalWidth-region.x)*s),Y=Math.round((e.y*p.img.naturalHeight-region.y)*s),W=Math.round(e.w*p.img.naturalWidth*s),H=Math.round(e.h*p.img.naturalHeight*s);X=clamp(X,0,w-1);Y=clamp(Y,0,h-1);W=clamp(W,1,w-X);H=clamp(H,1,h-Y);let from=Y-H-2;if(from<0)from=Y+H+2;if(from>=0&&from+H<=h){let patch=x.getImageData(X,from,W,H);x.putImageData(patch,X,Y)}else{let pixel=x.getImageData(X,clamp(Y-2,0,h-1),1,1).data;x.fillStyle='rgb('+pixel[0]+','+pixel[1]+','+pixel[2]+')';x.fillRect(X,Y,W,H)}}
-let a=+$('age').value/100;if(a){let image=x.getImageData(0,0,w,h),d=image.data;for(let i=0;i<d.length;i+=4){let avg=d[i]*.3+d[i+1]*.59+d[i+2]*.11;for(let j=0;j<3;j++)d[i+j]=clamp(d[i+j]*(1-a*.5)+avg*a*.5,0,255)}x.putImageData(image,0,0)}
+if(p.erase && $('watermarkType').value==='replace'){let e=p.erase,X=Math.round((e.x*p.img.naturalWidth-region.x)*s),Y=Math.round((e.y*p.img.naturalHeight-region.y)*s),W=Math.round(e.w*p.img.naturalWidth*s),H=Math.round(e.h*p.img.naturalHeight*s);X=clamp(X,0,w-1);Y=clamp(Y,0,h-1);W=clamp(W,1,w-X);H=clamp(H,1,h-Y);let from=Y-H-2;if(from<0)from=Y+H+2;if(from>=0&&from+H<=h){let patch=x.getImageData(X,from,W,H);x.putImageData(patch,X,Y)}else{let pixel=x.getImageData(X,clamp(Y-2,0,h-1),1,1).data;x.fillStyle='rgb('+pixel[0]+','+pixel[1]+','+pixel[2]+')';x.fillRect(X,Y,W,H)}}
+
+let a=+$('age').value/100;
+let sat=+$('sat').value/100,brightness=+$('bright').value/100,contrast=+$('contrast').value/100;
+if(a>0 || sat!==1 || brightness!==1 || contrast!==1){
+ let image=x.getImageData(0,0,w,h),d=image.data;
+ for(let i=0;i<d.length;i+=4){
+  let R=d[i],G=d[i+1],B=d[i+2],gray=.299*R+.587*G+.114*B;
+  let ss=sat*(1-.82*a),cc=contrast*(1-.32*a),bb=brightness*(1-.18*a);
+  let r=(gray+(R-gray)*ss-128)*cc+128,gg=(gray+(G-gray)*ss-128)*cc+128,b=(gray+(B-gray)*ss-128)*cc+128;
+  let grain=a*16*Math.sin((i/4%8191)*12.9898),tone=a*16;
+  d[i]=clamp(r*bb+tone+grain,0,255);
+  d[i+1]=clamp(gg*bb+tone*.35+grain*.7,0,255);
+  d[i+2]=clamp(b*bb-tone*.8+grain*.5,0,255);
+ }
+ x.putImageData(image,0,0);
+ if(a>.01){
+  x.save();
+  let rad=Math.max(w,h),v=x.createRadialGradient(w*.5,h*.5,rad*.1,w*.5,h*.5,rad*.78);
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(55,35,18,'+(.3*a)+')');
+  x.fillStyle=v;x.fillRect(0,0,w,h);x.restore();
+ }
+}
 let fields=$('batch').checked?getFields():p.fields;
 let action=$('watermarkType').value;
 if($('showtext').checked && action!=='keep'){
@@ -59,8 +80,47 @@ canvas.onpointermove=e=>{if(!point)return;let p=pos(e);selection={x:Math.min(poi
 canvas.onpointerup=e=>{if(!point)return;point=null;if(selection?.w<.01||selection?.h<.01){selection=null;redraw();return}if($('mode').value==='erase'){ $('watermarkType').value='replace';let b=bounds(active()),i=active().img;active().erase={x:(b.x+selection.x*b.w)/i.naturalWidth,y:(b.y+selection.y*b.h)/i.naturalHeight,w:selection.w*b.w/i.naturalWidth,h:selection.h*b.h/i.naturalHeight};selection=null;$('status').textContent='Zona del rótulo marcada. Escribe los nuevos datos a la izquierda.';redraw()}};
 $('cropbutton').onclick=()=>{let p=active();if(!p||!selection||$('mode').value!=='crop')return;let b=bounds(p),i=p.img;p.crop={x:(b.x+selection.x*b.w)/i.naturalWidth,y:(b.y+selection.y*b.h)/i.naturalHeight,w:selection.w*b.w/i.naturalWidth,h:selection.h*b.h/i.naturalHeight};selection=null;redraw()};
 $('undocrop').onclick=()=>{if(active()){active().crop=null;selection=null;redraw()}};$('undoerase').onclick=()=>{if(active()){active().erase=null;redraw()}};
-for(let k of ['watermarkType','node','date','coords','showtext','showlogo','logosize','age','size','batch'])$(k).addEventListener('input',()=>{if(['node','date','coords'].includes(k))saveFields();if(k==='watermarkType'){$('editHelp').textContent=$('watermarkType').value==='replace'?'Marca con el ratón la zona del rótulo original; el nuevo texto se dibujará solo en esa zona.':$('watermarkType').value==='add'?'Se colocará un rótulo nuevo abajo a la derecha. Utiliza esta opción solo en fotos sin rótulo.':'El texto original no se modifica.';}$('ageval').textContent=$('age').value+'%';$('sizeval').textContent=$('size').value+'%';$('logosizeval').textContent=$('logosize').value+'%';redraw()});
-$('ocr').onclick=async()=>{let p=active();if(!p)return;if(!window.Tesseract){$('status').textContent='OCR requiere conexión a internet';return}let btn=$('ocr');btn.disabled=true;$('status').textContent='Leyendo texto…';try{let c=document.createElement('canvas'),w=p.img.naturalWidth,h=p.img.naturalHeight;c.width=Math.min(w,1600);c.height=Math.round(c.width*.5*h/w);c.getContext('2d').drawImage(p.img,0,h*.5,w,h*.5,0,0,c.width,c.height);let r=await Tesseract.recognize(c,'eng'),lines=r.data.text.split(/\n/).map(t=>t.trim()),node=lines.find(t=>/[A-Z]\d{3,5}[_ ]SM/i.test(t)),date=lines.find(t=>/20\d\d/.test(t)),coords=lines.find(t=>/[NS].*[EW]/i.test(t));if(node)$('node').value=node;if(date)$('date').value=date;if(coords)$('coords').value=coords;saveFields();redraw();$('status').textContent='OCR completado. Verifica el texto.'}catch(e){$('status').textContent='Error de OCR: '+e.message}finally{btn.disabled=false}};
+for(let k of ['watermarkType','node','date','coords','showtext','showlogo','logosize','age','sat','bright','contrast','size','batch'])$(k).addEventListener('input',()=>{if(['node','date','coords'].includes(k))saveFields();if(k==='watermarkType'){$('editHelp').textContent=$('watermarkType').value==='replace'?'Marca con el ratón la zona del rótulo original; el nuevo texto se dibujará solo en esa zona.':$('watermarkType').value==='add'?'Se colocará un rótulo nuevo abajo a la derecha. Utiliza esta opción solo en fotos sin rótulo.':'El texto original no se modifica.';}$('ageval').textContent=$('age').value+'%';$('satval').textContent=$('sat').value+'%';$('brightval').textContent=$('bright').value+'%';$('contrastval').textContent=$('contrast').value+'%';$('sizeval').textContent=$('size').value+'%';$('logosizeval').textContent=$('logosize').value+'%';redraw()});
+
+$('applyLogo').onclick=()=>{if(!logo){$('logo').click();return}$('showlogo').checked=true;redraw();$('status').textContent='Logo aplicado en la esquina superior derecha de la imagen recortada.'};
+$('removeText').onclick=()=>{if(!active())return;if(!active().erase){$('status').textContent='Usa OCR o selecciona el rótulo anterior antes de borrarlo.';return}$('watermarkType').value='replace';$('showtext').checked=false;redraw();$('status').textContent='Zona del rótulo anterior cubierta. Revisa el fondo antes de descargar.'};
+$('ocr').onclick=async()=>{
+ const p=active();if(!p)return;
+ if(!window.Tesseract){$('status').textContent='OCR requiere conexión a internet';return}
+ let btn=$('ocr');btn.disabled=true;$('status').textContent='Leyendo rótulo y localizando su área…';
+ try{
+  let im=p.img,W=im.naturalWidth,H=im.naturalHeight;
+  let scan=document.createElement('canvas'),scale=Math.min(1,1600/W);
+  scan.width=Math.round(W*scale);scan.height=Math.round(H*.48*scale);
+  let context=scan.getContext('2d');
+  context.drawImage(im,0,H*.52,W,H*.48,0,0,scan.width,scan.height);
+  let result=await Tesseract.recognize(scan,'eng');
+  let lines=(result.data.text||'').split(/\\r?\\n/).map(t=>t.trim()).filter(Boolean);
+  let node=lines.find(t=>/[A-Z]\\d{3,5}[_ ]SM/i.test(t));
+  let date=lines.find(t=>/20\\d\\d/.test(t));
+  let coords=lines.find(t=>/[−-]\\d+[.,]\\d+.*[−-]\\d+[.,]\\d+/.test(t));
+  if(node)$('node').value=node;
+  if(date)$('date').value=date;
+  if(coords)$('coords').value=coords;
+  let boxes=(result.data.lines||[]).filter(t=>t.text && /\\d|SM|[SW]/i.test(t.text)).map(t=>t.bbox).filter(Boolean);
+  if(!boxes.length)boxes=(result.data.words||[]).filter(t=>t.text && /\\d|SM|[SW]/i.test(t.text)).map(t=>t.bbox).filter(Boolean);
+  if(boxes.length && (node||date||coords)){
+   let x0=Math.min(...boxes.map(t=>t.x0)),y0=Math.min(...boxes.map(t=>t.y0)),
+       x1=Math.max(...boxes.map(t=>t.x1)),y1=Math.max(...boxes.map(t=>t.y1));
+   let margin=Math.max(5,scan.width*.005);
+   x0=clamp(x0-margin,0,scan.width);y0=clamp(y0-margin,0,scan.height);
+   x1=clamp(x1+margin,0,scan.width);y1=clamp(y1+margin,0,scan.height);
+   p.erase={x:x0/scale/W,y:(H*.52+y0/scale)/H,w:(x1-x0)/scale/W,h:(y1-y0)/scale/H};
+   $('watermarkType').value='replace';
+   $('showtext').checked=true;
+   $('status').textContent='OCR detectó el rótulo y preparó el reemplazo en esa región. Verifica el texto y la selección.';
+  }else{
+   $('status').textContent='OCR leyó el texto, pero no delimitó la región con suficiente precisión. Selecciónala manualmente.';
+  }
+  saveFields();redraw();
+ }catch(e){$('status').textContent='OCR no completado: '+e.message}
+ finally{btn.disabled=false}
+};
 function fileName(p,n,used){let mode=$('naming').value,fields=$('batch').checked?getFields():p.fields,base=(mode==='original'?p.file.name.replace(/\.[^.]+$/,'')+'_editada':fields.node||p.file.name.replace(/\.[^.]+$/,''));if(mode==='number')base+='_'+String(n+1).padStart(3,'0');base=base.replace(/[\\/:*?"<>|]/g,'_').slice(0,100).trim();let ext=$('format').value==='image/png'?'.png':'.jpg',name=base+ext,c=2;while(used.has(name.toLowerCase()))name=base+'_'+c+++ext;used.add(name.toLowerCase());return name}
 const toBlob=c=>new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(Error('Error al generar archivo')),$('format').value,.93));
 function download(blob,name){let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),15000)}
