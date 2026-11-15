@@ -35,3 +35,14 @@ Vercel Functions limita las solicitudes y respuestas a 4.5 MB. El navegador redu
 - No hay almacenamiento permanente de las fotos en FotoNodos.
 - La API de OpenAI tiene consumo y facturación independiente. Revisa los límites de gasto y tasas de uso en tu cuenta de OpenAI.
 - Para usar públicamente con múltiples usuarios, añade control de acceso individual, rate limiting persistente, límites de presupuesto por usuario y monitoreo antes de habilitar la clave.
+
+
+## Modo GRATIS (sin OpenAI API)
+
+La pestaña **Gratis · Editar** es la predeterminada. No envía fotografías a OpenAI ni consume créditos de la API. Utiliza Tesseract.js para leer texto localmente (la biblioteca y sus archivos pueden requerir conexión a Internet) y Canvas para reemplazar visualmente los rótulos de cada fotografía.
+
+**Pasos:** cargar fotos → seleccionar una → **Leer rótulo gratis** o **Seleccionar rótulo** → modificar los datos en **Rótulo** o escribir una instrucción sencilla como `Cambia la fecha a 18 abr. 2026 y conserva el nombre del nodo` → revisar antes/después → descargar por nodo o ZIP.
+
+**Limitaciones:** las instrucciones gratuitas se interpretan con reglas sencillas para fecha, hora, coordenadas, identificador de nodo, logo y envejecimiento; no tienen la comprensión general de ChatGPT. **Borrar solo trazos blancos** conserva mejor los fondos oscuros o grises, pero puede requerir cambiar a **Reconstruir bordes** o **Clonar** cuando el fondo no es uniforme o el texto no es blanco. Las letras nuevas se dibujan con una tipografía similar, no necesariamente idéntica.
+
+Los archivos originales permanecen intactos. Los rótulos editados no certifican cuándo fueron tomadas las fotos.
