@@ -141,3 +141,13 @@ input[type=range]{width:100%;accent-color:#459dff;cursor:pointer}
 @keyframes ai-rolling{0%{transform:translateX(-110%)}100%{transform:translateX(310%)}}
 #aiOperation{line-height:1.4;min-height:46px}
 @media (max-width:1100px){.tabs{padding:0 7px;gap:1px}.tab{font-size:11px;padding:13px 7px}}
+
+
+/* El editor sin API es la opción principal en móviles y escritorio */
+.tabs{overflow-x:auto;scrollbar-width:thin}
+.tab{white-space:nowrap;flex:0 0 auto}
+.tab[data-tab="free"]{color:#8ceac4}
+.tab[data-tab="free"].active{color:#b1ffe1;border-color:#33d69a}
+#freeSave{width:100%}
+#freeInstruction{width:100%;resize:vertical;line-height:1.5;font-size:13px}
+#freeNotice{margin-top:12px}
