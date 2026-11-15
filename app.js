@@ -33,7 +33,7 @@ async function addFiles(list){
   let url=URL.createObjectURL(file);
   try{
    const image=await createImage(url);
-   photos.push({file,url,image,fields:{node:'',date:'',coords:''},watermarkMode:'replace',region:null,crop:null,pendingCrop:null,fontSize:100,repairMethod:'blend',ocrStatus:'not',adjust:defaultAdjust(),logo:defaultLogo(),customLogo:null,freeInstruction:'',aiImage:null,aiUrl:null,aiCleanRegion:false,aiHistory:[],aiInstruction:'',aiMode:'label',aiEdits:[]});
+   photos.push({file,url,image,fields:{node:'',date:'',coords:''},watermarkMode:'replace',region:null,crop:null,pendingCrop:null,fontSize:100,repairMethod:'glyph',ocrStatus:'not',adjust:defaultAdjust(),logo:defaultLogo(),customLogo:null,freeInstruction:'',aiImage:null,aiUrl:null,aiCleanRegion:false,aiHistory:[],aiInstruction:'',aiMode:'label',aiEdits:[]});
    count++;
   }catch(error){URL.revokeObjectURL(url);}
  }
@@ -578,7 +578,7 @@ for(let [id,field] of [['fieldNode','node'],['fieldDate','date'],['fieldCoords',
 }
 $('watermarkMode').addEventListener('change',e=>{const p=active();if(!p)return;p.watermarkMode=e.target.value;updateRegionNotice();schedulePreview();});
 $('fontSize').addEventListener('input',e=>{const p=active();if(!p)return;p.fontSize=Number(e.target.value);updateSliderLabels();schedulePreview();});
-$('repairMethod').addEventListener('change',e=>{const p=active();if(!p)return;p.repairMethod=e.target.value;schedulePreview();});
+$('repairMethod').addEventListener('change',e=>{const p=active();if(!p)return;p.repairMethod=e.target.value;$('freeRepair').value=p.repairMethod;schedulePreview();});
 $('showLogo').addEventListener('change',e=>{const p=active();if(!p)return;p.logo.enabled=e.target.checked;schedulePreview();});
 for(let id of ['logoSize','logoX','logoY']){
  $(id).addEventListener('input',e=>{const p=active();if(!p)return;p.logo[id==='logoSize'?'size':id==='logoX'?'x':'y']=Number(e.target.value);updateSliderLabels();schedulePreview();});
@@ -608,6 +608,82 @@ $('jpegQuality').addEventListener('input',()=>{$('jpegQualityVal').textContent=$
 $('downloadCurrent').addEventListener('click',exportSingle);
 $('downloadAll').addEventListener('click',exportAll);
 $('topZip').addEventListener('click',()=>{switchTab('export');exportAll();});
+
+/* Editor local gratuito: reglas explícitas, sin solicitudes de API de pago. */
+function localCommand(p,raw){
+ const input=String(raw||'').trim();
+ if(!input)return[];
+ const applied=[];
+ const months='ene(?:ro)?|feb(?:rero)?|mar(?:zo)?|abr(?:il)?|may(?:o)?|jun(?:io)?|jul(?:io)?|ago(?:sto)?|sep(?:tiembre)?|oct(?:ubre)?|nov(?:iembre)?|dic(?:iembre)?';
+ const datePattern=new RegExp('\\bfecha(?:\\s+(?:del|de la)\\s+(?:r[oó]tulo|foto(?:graf[ií]a)?))?\\s*(?:a|al|por|en|:)?\\s*(\\d{1,2}\\s*[/.-]\\s*\\d{1,2}\\s*[/.-]\\s*\\d{4}|\\d{1,2}\\s*(?:'+months+')\\.?\\s*\\d{4})','i');
+ let dateMatch=input.match(datePattern);
+ const timeMatch=input.match(/\bhora(?:\s+del\s+r[oó]tulo)?\s*(?:a|al|por|en|:)\s*(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?\s*m\.?)?)/i);
+ if(dateMatch){
+  const oldTime=p.fields.date.match(/\b\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?\s*m\.?)?/i);
+  let dateValue=dateMatch[1].trim().replace(/\s+/g,' ');
+  let timeValue=timeMatch?.[1]||oldTime?.[0]||'';
+  p.fields.date=(dateValue+(timeValue?' '+timeValue.trim():'')).trim();
+  applied.push('fecha');
+ }else if(timeMatch){
+  const prior=p.fields.date;
+  const priorTime=prior.match(/\b\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?\s*m\.?)?/i);
+  p.fields.date=(priorTime?prior.replace(priorTime[0],timeMatch[1]):(prior+' '+timeMatch[1])).trim();
+  applied.push('hora');
+ }
+ const coords=input.match(/[−-]\s*\d{1,3}[.,]\d{3,}\s*[NS]\s*[−-]\s*\d{1,3}[.,]\d{3,}\s*[EW]/i);
+ if(coords&&/\bcoordenad/i.test(input)){
+  p.fields.coords=coords[0].replace(/\s+/g,' ').trim();
+  applied.push('coordenadas');
+ }
+ const nodeMatch=input.match(/\b[A-Z]\d{4,5}[_ ]SM[_ ][A-Z0-9ÁÉÍÓÚÜÑ_ -]+?(?=\s+(?:y\s+conserva|y\s+mant[eé]n|conserva|mant[eé]n|sin\s+cambiar|sin\s+modificar)|[.,;]|$)/i);
+ if(nodeMatch&&/nodo|r[oó]tulo|nombre/i.test(input)){
+  p.fields.node=nodeMatch[0].trim().replace(/\s*_\s*/g,'_').replace(/\s{2,}/g,' ');
+  applied.push('nodo');
+ }
+ if(/\b(?:pon|poner|agrega|agregar|muestra|mostrar)\s+(?:el\s+)?logo/i.test(input)){
+  p.logo.enabled=true;applied.push('logo YOFC');
+ }
+ if(/\b(?:envejec|envejecer|envejece|aspecto\s+antiguo)/i.test(input)){
+  p.adjust={aging:52,saturation:82,brightness:92,contrast:90,warmth:10,grain:9};
+  applied.push('acabado visual');
+ }
+ return applied;
+}
+$('freeOCR').addEventListener('click',async()=>{
+ await recognizeOne();
+ switchTab('free');
+});
+$('freeMark').addEventListener('click',()=>{
+ switchTool('watermark');
+ switchTab('free');
+ toast('Arrastra sobre el rótulo original en el visor central.');
+});
+$('freeInstruction').addEventListener('input',(e)=>{
+ if(active())active().freeInstruction=e.target.value;
+});
+$('freeApplyInstruction').addEventListener('click',()=>{
+ const p=active();
+ if(!p){toast('Primero carga y selecciona una fotografía.');return;}
+ p.freeInstruction=$('freeInstruction').value;
+ const changes=localCommand(p,p.freeInstruction);
+ if(!changes.length){
+  status('No reconocí una fecha, hora o nodo en la instrucción. También puedes escribir los valores exactos en la pestaña «Rótulo».');
+  toast('Escribe «cambia la fecha a 18 abr. 2026» o modifica los campos manualmente.');
+  return;
+ }
+ showPhotoControls();renderPhotoList();schedulePreview();
+ const needsArea=p.watermarkMode==='replace'&&!p.region;
+ const message='Actualizado en esta foto: '+changes.join(', ')+'.'+(needsArea?' Marca el rótulo o usa OCR para reemplazarlo.':'');
+ status(message);toast(message);
+});
+$('freeRepair').addEventListener('change',(e)=>{
+ const p=active();if(!p)return;
+ p.repairMethod=e.target.value;
+ $('repairMethod').value=p.repairMethod;
+ schedulePreview();
+});
+$('freeSave').addEventListener('click',exportSingle);
+
 
 /* OpenAI image editor. API credentials remain on Vercel, never in this file. */
 async function checkAIStatus(){
