@@ -63,13 +63,32 @@
  <aside class="inspector">
   <div class="inspector-top"><div><span class="eyebrow">PANEL DE EDICIÓN</span><h2 id="inspectorTitle">Propiedades</h2></div><span class="selected-chip" id="selectedChip">Sin imagen</span></div>
   <nav class="tabs" aria-label="Herramientas">
-    <button class="tab active" data-tab="watermark">Rótulo</button>
-    <button class="tab" data-tab="ai">✦ Editor IA</button>
+    <button class="tab active" data-tab="free">Gratis · Editar</button>
+    <button class="tab" data-tab="watermark">Rótulo</button>
+    <button class="tab" data-tab="ai">IA de pago</button>
     <button class="tab" data-tab="logo">Logo</button>
     <button class="tab" data-tab="adjust">Ajustes</button>
     <button class="tab" data-tab="export">Exportar</button>
   </nav>
   <div class="tab-body">
+  <section class="tab-panel active" data-panel="free">
+    <div class="panel-title"><h3>Editar marca de agua · Gratis</h3><span class="mini-badge success">0 créditos de API</span></div>
+    <p class="muted">Todo se procesa en tu navegador. Lee el rótulo existente con OCR, modifica sus datos y reemplaza únicamente el área seleccionada. Cada fotografía mantiene sus propios cambios.</p>
+    <div class="action-grid"><button id="freeOCR" class="btn btn-primary">◉ Leer rótulo gratis</button><button id="freeMark" class="btn btn-secondary">⌗ Seleccionar rótulo</button></div>
+    <label for="freeInstruction" class="field-label">Instrucción rápida (opcional)</label>
+    <textarea class="field ai-prompt" id="freeInstruction" rows="3" placeholder="Ejemplo: cambia la fecha a 18 abr. 2026 y conserva las coordenadas."></textarea>
+    <button id="freeApplyInstruction" class="btn btn-primary" style="width:100%;margin-top:9px">✓ Aplicar cambios sin IA de pago</button>
+    <div class="notice" id="freeNotice">Primero identifica la marca de agua con «Leer rótulo gratis» o selecciona su área. Los campos de la pestaña «Rótulo» también se pueden editar directamente.</div>
+    <label class="field-label" for="freeRepair">Cómo borrar las letras antiguas</label>
+    <select id="freeRepair">
+      <option value="glyph">Borrar solo trazos blancos (recomendado)</option>
+      <option value="blend">Reconstruir toda la selección por bordes</option>
+      <option value="clone">Copiar textura de zona próxima</option>
+    </select>
+    <div class="notice">«Solo trazos blancos» intenta conservar la textura de la pared o superficie alrededor de las letras. Los fondos complejos pueden requerir retoque manual; no es idéntico a la edición generativa de ChatGPT.</div>
+    <div class="filename-label">FOTOGRAFÍA QUE SE DESCARGARÁ</div><div class="filename-preview" id="freeFileName">—</div>
+    <button id="freeSave" class="btn btn-secondary" style="width:100%;margin-top:14px">↓ Descargar esta fotografía</button>
+  </section>
   <section class="tab-panel" data-panel="ai">
     <div class="panel-title"><h3>Editor con inteligencia artificial</h3><span class="mini-badge" id="aiState">Sin configurar</span></div>
     <p class="muted">Escribe una instrucción como en ChatGPT. La IA puede reparar el fondo del rótulo y tú conservas el control de fecha, coordenadas y nombre exactos.</p>
@@ -96,7 +115,7 @@
     <div class="divider"></div>
     <div class="notice"><strong>Control de resultados:</strong> conserva las fotografías originales. La IA puede reconstruir texturas, pero no garantiza coincidencia exacta de todos los píxeles; revisa el resultado antes de exportar.</div>
   </section>
-  <section class="tab-panel active" data-panel="watermark">
+  <section class="tab-panel" data-panel="watermark">
     <div class="panel-title"><h3>Rótulo de esta fotografía</h3><span class="mini-badge" id="ocrState">Sin leer</span></div>
     <p class="muted">Lee el rótulo original con OCR, corrige los campos y reemplázalo dentro de su misma zona.</p>
     <div class="action-grid"><button class="btn btn-primary" id="ocrSingle">◉ Leer rótulo (OCR)</button><button class="btn btn-secondary" id="markRegion">⌗ Marcar zona</button></div>
@@ -109,7 +128,7 @@
     <div class="field-inline"><label class="field-label" for="fontSize">Tamaño del rótulo</label><output id="fontSizeVal">100%</output></div>
     <input id="fontSize" type="range" min="65" max="145" value="100">
     <label class="field-label" for="repairMethod">Reconstrucción del fondo</label>
-    <select id="repairMethod"><option value="blend">Reconstruir desde bordes (suave)</option><option value="clone">Clonar la zona superior</option></select>
+    <select id="repairMethod"><option value="glyph">Borrar solo los trazos de letras blancas</option><option value="blend">Reconstruir la selección desde bordes</option><option value="clone">Clonar la zona superior</option></select>
     <div class="divider"></div>
     <div class="filename-label">NOMBRE DE DESCARGA</div>
     <div class="filename-preview" id="fileNamePreview">—</div>
