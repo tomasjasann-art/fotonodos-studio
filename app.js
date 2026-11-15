@@ -171,8 +171,81 @@ function rectOnOutput(p,rect,crop,scale,w,h){
  let xx=clamp(x,0,w),yy=clamp(y,0,h);
  return{x:xx,y:yy,w:clamp(rw-(xx-x),0,w-xx),h:clamp(rh-(yy-y),0,h-yy)};
 }
+/* Borrado local sin API. Únicamente repara píxeles brillantes de letras blancas
+   dentro de la zona indicada; conserva los demás píxeles de la fotografía. */
+function eraseWhiteGlyphs(g,canvasW,canvasH,rect){
+ const x=clamp(Math.round(rect.x),0,canvasW-1),y=clamp(Math.round(rect.y),0,canvasH-1);
+ const w=clamp(Math.round(rect.w),0,canvasW-x),h=clamp(Math.round(rect.h),0,canvasH-y);
+ if(w<5||h<5)return;
+ const border=20;
+ const ox=Math.max(0,x-border),oy=Math.max(0,y-border);
+ const pw=Math.min(canvasW-ox,w+border*2),ph=Math.min(canvasH-oy,h+border*2);
+ const original=g.getImageData(ox,oy,pw,ph),src=original.data;
+ const xx=x-ox,yy=y-oy;
+ const at=(px,py)=>(py*pw+px)*4;
+ let borderSamples=[];
+ for(let i=0;i<w;i+=Math.max(1,Math.floor(w/80))){
+   for(let side of [-4,h+4]){
+    const py=clamp(yy+side,0,ph-1),k=at(clamp(xx+i,0,pw-1),py);
+    borderSamples.push(src[k]*.299+src[k+1]*.587+src[k+2]*.114);
+   }
+ }
+ for(let j=0;j<h;j+=Math.max(1,Math.floor(h/40))){
+   for(let side of [-4,w+4]){
+    const px=clamp(xx+side,0,pw-1),k=at(px,clamp(yy+j,0,ph-1));
+    borderSamples.push(src[k]*.299+src[k+1]*.587+src[k+2]*.114);
+   }
+ }
+ borderSamples.sort((a,b)=>a-b);
+ const median=borderSamples[Math.floor(borderSamples.length/2)]??110;
+ const threshold=clamp(median+37,158,246);
+ const mask=new Uint8Array(pw*ph);
+ let marked=0;
+ for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+   const px=xx+i,py=yy+j,k=at(px,py);
+   let R=src[k],G=src[k+1],B=src[k+2],lum=R*.299+G*.587+B*.114;
+   // Letras GPS típicas: blanco / gris claro, con poco matiz.
+   if(lum>=threshold&&Math.max(R,G,B)-Math.min(R,G,B)<52){mask[py*pw+px]=1;marked++}
+ }
+ if(!marked)return;
+ // Amplía un solo píxel para limpiar los bordes suavizados de las letras.
+ const expanded=mask.slice();
+ for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+   const px=xx+i,py=yy+j;
+   if(mask[py*pw+px]!==1)continue;
+   for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
+     let qx=px+di,qy=py+dj;
+     if(qx>=xx&&qx<xx+w&&qy>=yy&&qy<yy+h)expanded[qy*pw+qx]=1;
+   }
+ }
+ const next=new Uint8ClampedArray(src);
+ const directions=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+ // Para cada trazo, interpola colores de píxeles vecinos que no pertenecen al texto.
+ const radius=clamp(Math.ceil(h/6),10,28);
+ for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+   const px=xx+i,py=yy+j,position=py*pw+px;
+   if(!expanded[position])continue;
+   let sum=[0,0,0],total=0;
+   for(const [dx,dy] of directions){
+     for(let distance=1;distance<=radius;distance++){
+       const qx=px+dx*distance,qy=py+dy*distance;
+       if(qx<0||qy<0||qx>=pw||qy>=ph)break;
+       if(expanded[qy*pw+qx])continue;
+       const q=at(qx,qy),weight=1/Math.pow(distance,.83);
+       for(let c=0;c<3;c++)sum[c]+=src[q+c]*weight;
+       total+=weight;break;
+     }
+   }
+   if(!total)continue;
+   const dest=at(px,py);
+   for(let c=0;c<3;c++)next[dest+c]=Math.round(sum[c]/total);
+ }
+ g.putImageData(new ImageData(next,pw,ph),ox,oy);
+}
+
 function repairRegion(g,canvasW,canvasH,rect,method){
  if(!rect)return;
+ if(method==='glyph'){eraseWhiteGlyphs(g,canvasW,canvasH,rect);return;}
  let x=Math.round(rect.x),y=Math.round(rect.y),w=Math.round(rect.w),h=Math.round(rect.h);
  if(w<3||h<3||x>=canvasW||y>=canvasH)return;
  if(method==='clone'){
