@@ -34,13 +34,26 @@ module.exports=async function handler(req,res){
   mode==='local'?
   'Edit ONLY the transparent region of the supplied mask as instructed. Preserve photographic realism, context, lighting and physical details elsewhere, and do not alter unrelated areas. User instruction: '+instructions:
   'Photorealistic, high-fidelity edit of the supplied photograph. Preserve original composition and all areas not requested. User instruction: '+instructions;
- const input={model:'gpt-image-2.5-sunburst',images:[{image_url:image}],prompt,quality:'medium',size:'auto',output_format:'jpeg',output_compression:75};
- if(mode!=='full')input.mask={image_url:mask};
+ const imageMime=image.slice(5,image.indexOf(';'));
+ const imageBuffer=Buffer.from(image.slice(image.indexOf(',')+1),'base64');
+ const form=new FormData();
+ form.append('model','gpt-image-2.5-sunburst');
+ form.append('prompt',prompt);
+ form.append('quality','medium');
+ form.append('size','auto');
+ form.append('output_format','jpeg');
+ form.append('output_compression','75');
+ form.append('image[]',new Blob([imageBuffer],{type:imageMime}),imageMime==='image/png'?'source.png':'source.jpg');
+ if(mode!=='full'){
+  const maskBuffer=Buffer.from(mask.slice(mask.indexOf(',')+1),'base64');
+  form.append('mask',new Blob([maskBuffer],{type:'image/png'}),'mask.png');
+ }
  let upstream;
  try{
   upstream=await fetch('https://api.openai.com/v1/images/edits',{
-   method:'POST',headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},
-   body:JSON.stringify(input),signal:AbortSignal.timeout(170000)});
+   method:'POST',
+   headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY},
+   body:form,signal:AbortSignal.timeout(170000)});
  }catch(e){return json(res,504,{error:'No se pudo completar la solicitud a OpenAI: '+(e.name==='TimeoutError'?'tiempo de espera superado':'error de conexión')});}
  if(!upstream.ok){
   let detail='';try{const parsed=await upstream.json();detail=String(parsed.error?.message||'').slice(0,400);}catch{}
