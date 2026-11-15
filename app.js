@@ -567,7 +567,7 @@ function buildAIInput(photo,operation){
   h=Math.max(1,Math.round(crop.h*scale));
   work.width=w;work.height=h;
   work.getContext('2d').drawImage(source,crop.x,crop.y,crop.w,crop.h,0,0,w,h);
-  imageData=canvasDataUrl(work,'image/jpeg',.78);
+  imageData=canvasDataUrl(work,operation==='full'?'image/jpeg':'image/png',.78);
   maskData=null;rect=null;
   if(operation!=='full'){
    rect=rectOnOutput(photo,photo.region,crop,scale,w,h);
