@@ -33,7 +33,7 @@ async function addFiles(list){
   let url=URL.createObjectURL(file);
   try{
    const image=await createImage(url);
-   photos.push({file,url,image,fields:{node:'',date:'',coords:''},watermarkMode:'replace',region:null,crop:null,pendingCrop:null,fontSize:100,repairMethod:'blend',ocrStatus:'not',adjust:defaultAdjust(),logo:defaultLogo(),customLogo:null,aiImage:null,aiUrl:null,aiCleanRegion:false,aiHistory:[],aiInstruction:'',aiMode:'label',aiEdits:[]});
+   photos.push({file,url,image,fields:{node:'',date:'',coords:''},watermarkMode:'replace',region:null,crop:null,pendingCrop:null,fontSize:100,repairMethod:'blend',ocrStatus:'not',adjust:defaultAdjust(),logo:defaultLogo(),customLogo:null,freeInstruction:'',aiImage:null,aiUrl:null,aiCleanRegion:false,aiHistory:[],aiInstruction:'',aiMode:'label',aiEdits:[]});
    count++;
   }catch(error){URL.revokeObjectURL(url);}
  }
@@ -71,6 +71,7 @@ function refreshNames(){
  let p=active();
  const name=p?filenameOf(p,current):'—';
  $('fileNamePreview').textContent=name;
+ $('freeFileName').textContent=name;
  $('exportNamePreview').textContent=name;
  $('activeTitle').textContent=p?(p.fields.node||p.file.name):'Selecciona una fotografía';
  if(p){$('editorSubtitle').textContent=p.file.name+' · '+p.image.naturalWidth+' × '+p.image.naturalHeight+' píxeles';}
@@ -100,6 +101,8 @@ function showPhotoControls(){
  $('fieldDate').value=p.fields.date;
  $('fieldCoords').value=p.fields.coords;
  $('aiInstruction').value=p.aiInstruction||'';
+ $('freeInstruction').value=p.freeInstruction||'';
+ $('freeRepair').value=p.repairMethod||'glyph';
  $('aiOperation').value=p.aiMode||'label';
  $('aiUndo').disabled=!(p.aiHistory&&p.aiHistory.length);
  $('aiRegionNotice').textContent=p.region?'Zona de edición seleccionada para esta foto.':'Usa el OCR o marca el área del rótulo. Para edición de toda la imagen elige «Fotografía completa».';
@@ -107,6 +110,7 @@ function showPhotoControls(){
  $('fontSize').value=p.fontSize;
  $('fontSizeVal').textContent=p.fontSize+'%';
  $('repairMethod').value=p.repairMethod;
+ $('freeRepair').value=p.repairMethod;
  $('ocrState').textContent=p.ocrStatus==='done'?'OCR leído':p.ocrStatus==='failed'?'Revisar OCR':'Sin leer';
  $('ocrState').classList.toggle('success',p.ocrStatus==='done');
  $('showLogo').checked=p.logo.enabled;
@@ -138,7 +142,7 @@ function switchTab(name){
  tab=name;
  all('.tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));
  all('.tab-panel').forEach(el=>el.classList.toggle('active',el.dataset.panel===name));
- $('inspectorTitle').textContent=({watermark:'Rótulos',ai:'Editor con IA',logo:'Logo de empresa',adjust:'Ajustes visuales',export:'Descargas'})[name]||'Propiedades';
+ $('inspectorTitle').textContent=({free:'Edición gratuita',watermark:'Rótulos',ai:'Editor con IA de pago',logo:'Logo de empresa',adjust:'Ajustes visuales',export:'Descargas'})[name]||'Propiedades';
 }
 function switchTool(name){
  mode=name;dragSelection=null;dragOrigin=null;
@@ -706,7 +710,7 @@ async function bootstrap(){
   try{defaultLogoImage=await createImage(window.FOTONODOS_YOFC_DATA);$('logoPreview').src=window.FOTONODOS_YOFC_DATA;}
   catch(e){status('No se pudo cargar el logo predeterminado.');}
  }
- showPhotoControls();renderPhotoList();switchTool('view');switchTab('watermark');
+ showPhotoControls();renderPhotoList();switchTool('view');switchTab('free');
  checkAIStatus();
 }
 bootstrap();
